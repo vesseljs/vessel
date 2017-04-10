@@ -1,0 +1,1 @@
+export { attr } from './src/attr';

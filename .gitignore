@@ -1,0 +1,49 @@
+# Intended omission
+####################
+prototype/*
+dist/*
+
+# Env
+####################
+node_modules/
+
+# OS Generated Files
+####################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Compressed/Packages
+#####################
+*.zip
+*.tar
+*.rar
+*.dmg
+*.7z
+*.iso
+*.gz
+*.jar
+
+# IDE's Files
+#####################
+
+# SublimeText 
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+
+# VisualStudioCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# WebStorm
+.idea/
