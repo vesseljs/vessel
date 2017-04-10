@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "module": "es2015",
+    "target": "es5",
+    "moduleResolution": "node",
+    "noImplicitAny": false,
+    "sourceMap": true,
+    "experimentalDecorators": true,
+    "lib": ["es6", "dom"],
+    "paths": {
+      "@vessel/common/*": [ "common/*" ],
+      "@vessel/core/*": ["core/*"],
+      "@vessel/boot/*": ["boot/*"],
+      "@vessel/dom/*": ["dom/*"],
+      "@vessel/router/*": ["router/*"],
+      "@vessel/vessel-cli/*": ["vessel-cli/*"]
+    }
+  }
+}
