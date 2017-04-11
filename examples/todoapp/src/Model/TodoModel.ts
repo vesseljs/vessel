@@ -1,5 +1,5 @@
 import { Model as BaseModel } from '@vessel/core';
-import { attr } from '@vessel/common/decorators';
+import { attr, validate } from '@vessel/common/decorators';
 
 export class TodoModel extends BaseModel {
 
@@ -14,17 +14,25 @@ export class TodoModel extends BaseModel {
 
     constructor(author, body ) {
         super();
-        this.set({
-            author: author,
-            body: body
-        })
+        this.setAuthor( author );
+        this.setBody( body );
     }
 
     getAuthor() {
         return this.attr.author;
     }
 
-    setAuthor( value ) {
+    @validate(
+        function validateAuthor(value) {
+            if (!(value.length >= 3 && value.length <= 20) ) {
+                console.warn("Author length must be greater " +
+                    "than 3 characters or less than 20.");
+                return false;
+            }
+            return true;
+        }
+    )
+    setAuthor(value) {
         this.attr.author = value;
     }
 
@@ -32,7 +40,16 @@ export class TodoModel extends BaseModel {
         return this.attr.body;
     }
 
-    setBody( value ) {
+    @validate(
+        function(value) {
+            if (!(value.length >= 0 && value.length <= 120) ) {
+                throw TypeError("Body length must be less " +
+                    "than 120 characters and must not be empty.");
+            }
+            return true;
+        }
+    )
+    setBody(value) {
         this.attr.body = value;
     }
 

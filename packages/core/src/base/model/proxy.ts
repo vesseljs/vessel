@@ -1,10 +1,10 @@
-import { defineProp } from '../../../../common/utils/src/utilities';
+import { defineProp } from '@vessel/common/utils/src/utilities';
 
 export class AttribProxy {
 
     public data = <any>{};
 
-    public addAttribute( name ) {
+    public addAttribute( name: string ) {
         this.data[name] = "";
         defineProp(this, name,
             function getter() {

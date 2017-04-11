@@ -14,6 +14,17 @@ function __decorate(decorators, target, key, desc) {
 function isSupported(feature) {
     return typeof feature == 'function';
 }
+function isArrayEmpty(arr) {
+    return arr.length === 0;
+}
+
+function isFunction(fn) {
+    if (fn == undefined)
+        return false;
+    if (typeof fn !== "function")
+        return false;
+    return true;
+}
 function defineProp(obj, prop, getter, setter) {
     var descriptor = {
         enumerable: false,
@@ -67,36 +78,65 @@ var AttribProxy = (function () {
 
 var Model = (function () {
     function Model() {
-        this.__metadata__ = [];
         this._createProxy();
     }
+    // TODO - Validation in set
     Model.prototype.set = function (attribs) {
         for (var attrib in attribs) {
             this.attr[attrib] = attribs[attrib];
         }
     };
     Model.prototype._createProxy = function () {
+        if (isArrayEmpty(this.__metadata__))
+            throw TypeError("Attempt to create a proxy" +
+                " with no metadata.");
         this.attr = new AttribProxy();
         for (var _i = 0, _a = this.__metadata__; _i < _a.length; _i++) {
             var attrName = _a[_i];
             this.attr.addAttribute(attrName);
         }
     };
+    Model.prototype._validate = function (value, validationFn) {
+        return validationFn(value);
+    };
+    Model.prototype._getClassName = function () {
+        return this.constructor.name;
+    };
     return Model;
 }());
+// Metadata needs to be directly declared
+// so it already exists in the prototype
+// when the decorator runs.
+Model.prototype.__metadata__ = [];
 
 function attr(modelPrototype, attribName) {
     modelPrototype.__metadata__.push(attribName);
+}
+
+function validate(validationFn) {
+    return function (modelPrototype, setterName, descriptor) {
+        if (!isFunction(validationFn)) {
+            throw TypeError("The @validate() decorator, " +
+                "applied to '" + setterName + "()', requires a " +
+                "valid validator function as parameter to be " +
+                "passed in.");
+        }
+        var boundFn = descriptor.value;
+        descriptor.value = function setAttribute(value) {
+            if (this._validate(value, validationFn)) {
+                boundFn.call(this, value);
+            }
+        };
+        return descriptor;
+    };
 }
 
 var TodoModel = (function (_super) {
     __extends(TodoModel, _super);
     function TodoModel(author, body) {
         var _this = _super.call(this) || this;
-        _this.set({
-            author: author,
-            body: body
-        });
+        _this.setAuthor(author);
+        _this.setBody(body);
         return _this;
     }
     TodoModel.prototype.getAuthor = function () {
@@ -122,8 +162,27 @@ __decorate([
 __decorate([
     attr
 ], TodoModel.prototype, "date", void 0);
+__decorate([
+    validate(function validateAuthor(value) {
+        if (!(value.length >= 3 && value.length <= 20)) {
+            console.warn("Author length must be greater " +
+                "than 3 characters or less than 20.");
+            return false;
+        }
+        return true;
+    })
+], TodoModel.prototype, "setAuthor", null);
+__decorate([
+    validate(function (value) {
+        if (!(value.length >= 0 && value.length <= 120)) {
+            throw TypeError("Body length must be less " +
+                "than 120 characters and must not be empty.");
+        }
+        return true;
+    })
+], TodoModel.prototype, "setBody", null);
 
 var app = new App().browserBoot();
-app.x = new TodoModel('pedro', 'body 1');
+app.x = new TodoModel('pe', 'body 1');
 app.y = new TodoModel('alex', 'body 2');
 //# sourceMappingURL=bundle.js.map
