@@ -1,3 +1,3 @@
-export function attr( modelPrototype, attribName ) {
-    modelPrototype.__metadata__.push( attribName );
+export function attr(proto, attribName) {
+    proto.__metadata__.push(attribName);
 }

@@ -1,7 +1,7 @@
 import { isFunction } from "@vessel/common/utils";
 
 export function validate(validationFn ) {
-    return function(modelPrototype, setterName, descriptor) {
+    return function(proto, setterName, descriptor) {
         if ( !isFunction(validationFn) ) {
             throw TypeError("The @validate() decorator, " +
                 "applied to '" + setterName + "()', requires a " +

@@ -1,3 +1,3 @@
-export { Model, View, Collection } from './base/base';
-export { Http, Storage } from './services/services';
-export { GlobalContainer } from './container/container';
+export * from './base/base';
+export * from './services/services';
+export *  from './container/container';

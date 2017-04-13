@@ -14,6 +14,9 @@ function __decorate(decorators, target, key, desc) {
 function isSupported(feature) {
     return typeof feature == 'function';
 }
+function isArray(arr) {
+    return Array.isArray(arr);
+}
 function isArrayEmpty(arr) {
     return arr.length === 0;
 }
@@ -109,12 +112,62 @@ var Model = (function () {
 // when the decorator runs.
 Model.prototype.__metadata__ = [];
 
-function attr(modelPrototype, attribName) {
-    modelPrototype.__metadata__.push(attribName);
+var Collection = (function () {
+    function Collection() {
+    }
+    Collection.prototype.add = function () {
+        var args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            args[_i] = arguments[_i];
+        }
+        var collection = this.getCollection(), Model = this.getModel();
+        try {
+            collection.push(new (Model.bind.apply(Model, [void 0].concat(args)))());
+        }
+        catch (e) {
+            if (e instanceof TypeError) {
+                if (!isArray(collection)) {
+                    console.error("TypeError: The collection '" +
+                        this.__metadata__ + "' (" + typeof collection +
+                        ")must be an array.");
+                }
+            }
+        }
+    };
+    Collection.prototype.find = function () {
+    };
+    Collection.prototype.findOne = function () {
+    };
+    Collection.prototype.findById = function () {
+    };
+    Collection.prototype.sort = function () {
+    };
+    Collection.prototype.remove = function () {
+    };
+    Collection.prototype.removeById = function () {
+    };
+    Collection.prototype.update = function () {
+    };
+    Collection.prototype.save = function () {
+    };
+    Collection.prototype.fetch = function () {
+    };
+    Collection.prototype.willRetrieve = function () {
+        return this;
+    };
+    Collection.prototype.getCollection = function () {
+        var collection = this[this.__metadata__];
+        return collection;
+    };
+    return Collection;
+}());
+
+function attr(proto, attribName) {
+    proto.__metadata__.push(attribName);
 }
 
 function validate(validationFn) {
-    return function (modelPrototype, setterName, descriptor) {
+    return function (proto, setterName, descriptor) {
         if (!isFunction(validationFn)) {
             throw TypeError("The @validate() decorator, " +
                 "applied to '" + setterName + "()', requires a " +
@@ -129,6 +182,10 @@ function validate(validationFn) {
         };
         return descriptor;
     };
+}
+
+function collection(proto, attribName) {
+    proto.__metadata__ = attribName;
 }
 
 var TodoModel = (function (_super) {
@@ -182,7 +239,24 @@ __decorate([
     })
 ], TodoModel.prototype, "setBody", null);
 
+//inject()
+var TodoCollection = (function (_super) {
+    __extends(TodoCollection, _super);
+    function TodoCollection() {
+        return _super.call(this) || this;
+    }
+    TodoCollection.prototype.getModel = function () {
+        return TodoModel;
+    };
+    return TodoCollection;
+}(Collection));
+__decorate([
+    collection
+], TodoCollection.prototype, "todos", void 0);
+
 var app = new App().browserBoot();
 app.x = new TodoModel('pe', 'body 1');
 app.y = new TodoModel('alex', 'body 2');
+app.collection = new TodoCollection();
+app.collection.add('pedro!', 'body 1');
 //# sourceMappingURL=bundle.js.map

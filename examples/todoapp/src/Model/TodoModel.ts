@@ -1,7 +1,8 @@
 import { Model as BaseModel } from '@vessel/core';
 import { attr, validate } from '@vessel/common/decorators';
+import {ModelInterface} from "../../../../dist/@vessel/core/src/base/interfaces";
 
-export class TodoModel extends BaseModel {
+export class TodoModel extends BaseModel implements ModelInterface{
 
     @attr
     public author;

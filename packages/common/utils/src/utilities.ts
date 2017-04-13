@@ -10,6 +10,10 @@ export function isSupported( feature ) {
 	return typeof feature == 'function';
 }
 
+export function isArray( arr ) {
+    return Array.isArray(arr);
+}
+
 export function isArrayEmpty( arr ) {
     return arr.length === 0
 }
