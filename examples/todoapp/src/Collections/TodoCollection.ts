@@ -8,7 +8,7 @@ import {ModelInterface} from "../../../../packages/core/src/base/interfaces";
 export class TodoCollection extends BaseCollection {
 
     @collection
-    public todos;
+    public todos = [];
 
 
     constructor() {

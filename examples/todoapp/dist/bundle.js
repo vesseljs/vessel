@@ -37,6 +37,63 @@ function defineProp(obj, prop, getter, setter) {
     };
     Object.defineProperty(obj, prop, descriptor);
 }
+function getKeys(obj) {
+    return Object.keys(obj);
+}
+function each(obj, fn, context) {
+    if (context === void 0) { context = null; }
+    var i, len, keys, item;
+    if (isArray(obj)) {
+        for (i = 0, len = obj.length; i < len; i++) {
+            fn.call(context, obj[i], i, obj);
+        }
+    }
+    else {
+        keys = getKeys(obj);
+        for (i = 0, len = keys.length; i < len; i++) {
+            item = keys[i];
+            fn.call(context, item, obj[item], obj);
+        }
+    }
+    return obj;
+}
+function matchPair(obj, attrs) {
+    var keys = getKeys(attrs), len = keys.length, key, i;
+    for (i = 0; i < len; i++) {
+        key = keys[i];
+        if (attrs[key] !== obj[key] || !(key in obj))
+            return false;
+    }
+    return true;
+}
+function map(arr, fn, context) {
+    if (context === void 0) { context = null; }
+    var newArr = [], result;
+    each(arr, function (item, index) {
+        result = fn.call(context, item, index);
+        if (result)
+            newArr.push(result);
+    });
+    return newArr;
+}
+function filter(obj, fn, context) {
+    if (context === void 0) { context = null; }
+    var matches = [];
+    each(obj, function (item, index) {
+        if (fn.call(context, item, index, obj))
+            matches.push(item);
+    });
+    return matches;
+}
+function filterOne(arr, fn, context) {
+    if (context === void 0) { context = null; }
+    var i, item, len = arr.length;
+    for (i = 0; i < len; i++) {
+        if (fn.call(context, item = arr[i], i, arr))
+            return item;
+    }
+    return false;
+}
 
 var App = (function () {
     function App() {
@@ -112,6 +169,7 @@ var Model = (function () {
 // when the decorator runs.
 Model.prototype.__metadata__ = [];
 
+var prefixAttr = 'attr';
 var Collection = (function () {
     function Collection() {
     }
@@ -129,16 +187,25 @@ var Collection = (function () {
                 if (!isArray(collection)) {
                     console.error("TypeError: The collection '" +
                         this.__metadata__ + "' (" + typeof collection +
-                        ")must be an array.");
+                        ") must be an array.");
                 }
             }
         }
     };
-    Collection.prototype.find = function () {
+    Collection.prototype.find = function (attrs) {
+        return filterOne(this.getCollection(), function (item) {
+            return matchPair(item[prefixAttr], attrs);
+        });
     };
-    Collection.prototype.findOne = function () {
+    Collection.prototype.findAll = function (attrs) {
+        return filter(this.getCollection(), function (item) {
+            return matchPair(item[prefixAttr], attrs);
+        });
     };
-    Collection.prototype.findById = function () {
+    Collection.prototype.pull = function (attrName) {
+        return map(this.getCollection(), function (item) {
+            return item[prefixAttr][attrName];
+        });
     };
     Collection.prototype.sort = function () {
     };
@@ -156,8 +223,7 @@ var Collection = (function () {
         return this;
     };
     Collection.prototype.getCollection = function () {
-        var collection = this[this.__metadata__];
-        return collection;
+        return this[this.__metadata__];
     };
     return Collection;
 }());
@@ -243,7 +309,9 @@ __decorate([
 var TodoCollection = (function (_super) {
     __extends(TodoCollection, _super);
     function TodoCollection() {
-        return _super.call(this) || this;
+        var _this = _super.call(this) || this;
+        _this.todos = [];
+        return _this;
     }
     TodoCollection.prototype.getModel = function () {
         return TodoModel;
@@ -255,8 +323,12 @@ __decorate([
 ], TodoCollection.prototype, "todos", void 0);
 
 var app = new App().browserBoot();
-app.x = new TodoModel('pe', 'body 1');
-app.y = new TodoModel('alex', 'body 2');
+//app.x = new TodoModel('pe', 'body 1');
+//app.y = new TodoModel('alex', 'body 2');
 app.collection = new TodoCollection();
 app.collection.add('pedro!', 'body 1');
+app.collection.add('javi!', 'body 2');
+app.collection.add('fran!', 'body 3');
+app.collection.add('jose!', 'body 4');
+app.collection.add('javier!', 'body 4');
 //# sourceMappingURL=bundle.js.map

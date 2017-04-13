@@ -1,16 +1,16 @@
-import { isArray } from "@vessel/common/utils";
+import { isArray, filterOne, filter, matchPair, map } from "@vessel/common/utils";
+import { ModelInterface } from "@vessel/core/src/base/interfaces";
+
+let prefixAttr = 'attr';
 
 export abstract class Collection {
 
     public __metadata__: string;
-
-    public constructor() {
-    }
+    private collection: ModelInterface[];
 
     public add(...args) {
         let collection = this.getCollection(),
             Model = this.getModel();
-
         try {
             collection.push(new Model(...args));
         } catch(e) {
@@ -24,20 +24,25 @@ export abstract class Collection {
         }
     }
 
-    public find(exp) {
-
+    public find(attrs) {
+        return filterOne(this.getCollection(), function(item){
+            return matchPair(item[prefixAttr], attrs);
+        });
     }
 
-    public findOne() {
-
+    public findAll(attrs) {
+        return filter(this.getCollection(), function(item){
+            return matchPair(item[prefixAttr], attrs);
+        });
     }
 
-    public findById() {
-
+    public pull(attrName) {
+        return map(this.getCollection(), function(item){
+            return item[prefixAttr][attrName];
+        });
     }
 
     public sort() {
-
     }
 
     public remove() {
@@ -60,17 +65,12 @@ export abstract class Collection {
 
     }
 
-    public pull() {
-
-    }
-
     protected willRetrieve() {
         return this;
     }
 
     private getCollection() {
-        let collection = this[this.__metadata__];
-        return collection;
+        return this[this.__metadata__];
     }
 
     abstract getModel();
