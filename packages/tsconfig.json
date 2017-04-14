@@ -14,7 +14,8 @@
       "@vessel/boot/*": ["boot/*"],
       "@vessel/dom/*": ["dom/*"],
       "@vessel/router/*": ["router/*"],
-      "@vessel/vessel-cli/*": ["vessel-cli/*"]
+      "@vessel/vessel-cli/*": ["vessel-cli/*"],
+      "@vessel/types/*": ["types/*"]
     }
   }
 }

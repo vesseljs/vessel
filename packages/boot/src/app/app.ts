@@ -1,7 +1,7 @@
-import { isSupported } from '../../../common/utils/src/utilities';
-import { WindowInterface } from './interfaces';
+import { isSupported } from '@vessel/common/utils';
+import { WindowInterface, AppInterface } from '@vessel/types/definitions';
 
-export class App {
+export class App implements AppInterface {
 
 	public container;
 

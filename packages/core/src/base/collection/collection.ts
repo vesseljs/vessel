@@ -1,5 +1,5 @@
-import { isArray, filterOne, filter, matchPair, map } from "@vessel/common/utils";
-import { ModelInterface } from "@vessel/core/src/base/interfaces";
+import { isArray, filterOne, filter, matchPair, map } from '@vessel/common/utils';
+import { ModelInterface } from '@vessel/types/definitions';
 
 let prefixAttr = 'attr';
 
@@ -43,6 +43,7 @@ export abstract class Collection {
     }
 
     public sort() {
+
     }
 
     public remove() {

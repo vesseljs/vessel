@@ -1,5 +1,5 @@
 import { AttribProxy } from './proxy';
-import { ModelInterface } from '../interfaces';
+import { ModelInterface } from '@vessel/types/definitions';
 import { isArrayEmpty } from '@vessel/common/utils/src/utilities';
 
 /**
