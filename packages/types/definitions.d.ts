@@ -1,5 +1,5 @@
 /**
- * Standard definitions
+ * Standard interfaces
  */
 
 export interface ModelInterface {
@@ -22,13 +22,7 @@ export interface StorageInterface {
 
 }
 
-/**
- * Private framework definitions
- */
-
-export interface WindowInterface extends Window {
-    $Vessel: any;
-}
-
 export interface AppInterface {
+    can: any;
+    browserBoot(): AppInterface;
 }

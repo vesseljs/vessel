@@ -99,13 +99,12 @@ var App = (function () {
     function App() {
     }
     App.prototype.browserBoot = function () {
-        window.$Vessel = this;
-        this.detectBrowserFeatures()
-            .loadContainer();
+        this.detectBrowserFeatures();
+        this.loadContainer();
         return this;
     };
     App.prototype.detectBrowserFeatures = function () {
-        window.$Vessel.can = {
+        this.can = {
             WeakMap: isSupported(window.WeakMap)
         };
         return this;
@@ -113,7 +112,7 @@ var App = (function () {
     // TODO - WeakMap fallback
     App.prototype.loadContainer = function () {
         this.container =
-            window.$Vessel.can.WeakMap ?
+            this.can.WeakMap ?
                 new WeakMap() :
                 "Dev: WeakMap fallback - work in progress";
         return this;
@@ -436,13 +435,13 @@ __decorate([
     collection
 ], TodoCollection.prototype, "todos", void 0);
 
-var app = new App().browserBoot();
+$App = new App().browserBoot();
 //app.x = new TodoModel('pe', 'body 1');
 //app.y = new TodoModel('alex', 'body 2');
-app.collection = new TodoCollection();
-app.collection.add('pedro!', 'body 1');
-app.collection.add('javi!', 'body 2');
-app.collection.add('fran!', 'body 3');
-app.collection.add('jose!', 'body 4');
-app.collection.add('javier!', 'body 4');
+$App["collection"] = new TodoCollection();
+$App["collection"].add('pedro!', 'body 1');
+$App["collection"].add('javi!', 'body 2');
+$App["collection"].add('fran!', 'body 3');
+$App["collection"].add('jose!', 'body 4');
+$App["collection"].add('javier!', 'body 4');
 //# sourceMappingURL=bundle.js.map

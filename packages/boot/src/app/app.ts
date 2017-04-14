@@ -1,28 +1,29 @@
 import { isSupported } from '@vessel/common/utils';
-import { WindowInterface, AppInterface } from '@vessel/types/definitions';
+import { AppInterface } from '@vessel/types/definitions';
 
 export class App implements AppInterface {
 
 	public container;
 
-	public browserBoot(): App {
-		(<WindowInterface>window).$Vessel = this;
-		this.detectBrowserFeatures()
-			.loadContainer();
+	public can;
+
+	public browserBoot(): AppInterface {
+		this.detectBrowserFeatures();
+		this.loadContainer();
 		return this;
 	}
 
-	private detectBrowserFeatures(): App {
-		(<WindowInterface>window).$Vessel.can = {
+	private detectBrowserFeatures(): AppInterface {
+		this.can = {
 			WeakMap: isSupported( (<any>window).WeakMap )
 		}
 		return this;
 	}
 
 	// TODO - WeakMap fallback
-	private loadContainer(): App {
+	private loadContainer(): AppInterface {
 		 this.container =
-             (<WindowInterface>window).$Vessel.can.WeakMap ?
+             this.can.WeakMap ?
                  new WeakMap() :
                  "Dev: WeakMap fallback - work in progress";
 		return this;

@@ -16,6 +16,9 @@
       "@vessel/router/*": ["router/*"],
       "@vessel/vessel-cli/*": ["vessel-cli/*"],
       "@vessel/types/*": ["types/*"]
-    }
+    },
+    "include": [
+      "types/definitions.d.ts"
+    ]
   }
 }
