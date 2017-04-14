@@ -121,10 +121,29 @@ var App = (function () {
     return App;
 }());
 
+/**
+ * Attribute proxy.
+ *
+ * Intercepts each setter/getter of
+ * each model's attribute so it can
+ * trigger events.
+ */
 var AttribProxy = (function () {
     function AttribProxy() {
+        /**
+         * Stores the state of the
+         * model's attributes.
+         *
+         * @type {any{} }
+         */
         this.data = {};
     }
+    /**
+     * Setups a new attribute, installs
+     * the getter and setter interceptors.
+     *
+     * @param name
+     */
     AttribProxy.prototype.addAttribute = function (name) {
         this.data[name] = "";
         defineProp(this, name, function getter() {
@@ -136,16 +155,31 @@ var AttribProxy = (function () {
     return AttribProxy;
 }());
 
+/**
+ * BaseModel class
+ */
 var Model = (function () {
     function Model() {
         this._createProxy();
     }
-    // TODO - Validation in set
-    Model.prototype.set = function (attribs) {
-        for (var attrib in attribs) {
-            this.attr[attrib] = attribs[attrib];
+    /**
+     * Provides a way to set multiple
+     * attributes at once.
+     *
+     * @param attrs
+     */
+    // TODO - Validation within set
+    Model.prototype.set = function (attrs) {
+        for (var attr in attrs) {
+            this.attr[attr] = attrs[attr];
         }
     };
+    /**
+     * Instances the attribute proxy, it adds each
+     * attribute defined in the model with the
+     * 'attr' decorator to the proxy.
+     * @private
+     */
     Model.prototype._createProxy = function () {
         if (isArrayEmpty(this.__metadata__))
             throw TypeError("Attempt to create a proxy" +
@@ -156,6 +190,20 @@ var Model = (function () {
             this.attr.addAttribute(attrName);
         }
     };
+    /**
+     * Whenever a validation takes place, this
+     * function will be invoked. All built-in
+     * general validations will be checked here.
+     *
+     * This function is responsible for return
+     * the results of the custom defined
+     * validationFn.
+     *
+     * @param value
+     * @param validationFn
+     * @returns boolean
+     * @private
+     */
     Model.prototype._validate = function (value, validationFn) {
         return validationFn(value);
     };
@@ -164,9 +212,12 @@ var Model = (function () {
     };
     return Model;
 }());
-// Metadata needs to be directly declared
-// so it already exists in the prototype
-// when the decorator runs.
+// Since decorators are executed at runtime
+// and __metadata__ is an array which is used
+// by the @attr decorator, __metadata__ needs
+// to be declared outside the class.
+// Otherwise, the push method that the decorator
+// uses will throw an error.
 Model.prototype.__metadata__ = [];
 
 var prefixAttr = 'attr';
@@ -228,10 +279,50 @@ var Collection = (function () {
     return Collection;
 }());
 
-function attr(proto, attribName) {
-    proto.__metadata__.push(attribName);
+/**
+ * Decorator: @attr
+ *
+ * Adds the names of the custom attributes to
+ * <ModelPrototype>.__metadata__. This will
+ * be used by the framework so it knows what
+ * are the model attributes that it will need.
+ *
+ * @param proto
+ * @param attrName
+ */
+/**
+ * Decorator: @attr
+ *
+ * Adds the names of the custom attributes to
+ * <ModelPrototype>.__metadata__. This will
+ * be used by the framework so it knows what
+ * are the model attributes that it will need.
+ *
+ * @param proto
+ * @param attrName
+ */ function attr(proto, attrName) {
+    proto.__metadata__.push(attrName);
 }
 
+/**
+ * Decorator: @validate( <validate function> )
+ *
+ * Alters the original setter so each time
+ * it is invoked it will proceed as follows:
+ *
+ *  1. Calls the built-in _validate function. This
+ *  is a built-in framework function, responsible
+ *  for general validation.
+ *  2. The _validation function will delegate to
+ *  the given validate function
+ *  3. If the passed in validate function returns
+ *  true it'll execute the setter.
+ *  *3b. If the validate function results in false,
+ *  The new value will not be setted.
+ *
+ * @param validationFn
+ * @returns descriptor object
+ */
 function validate(validationFn) {
     return function (proto, setterName, descriptor) {
         if (!isFunction(validationFn)) {
@@ -250,8 +341,31 @@ function validate(validationFn) {
     };
 }
 
-function collection(proto, attribName) {
-    proto.__metadata__ = attribName;
+/**
+ * Decorator: @collection
+ *
+ * Adds the name of the custom attribute to
+ * <CollectionPrototype>.__metadata__. This
+ * will be used by the framework so it knows
+ * what is the collection attribute which
+ * will store the models.
+ *
+ * @param proto
+ * @param attrName
+ */
+/**
+ * Decorator: @collection
+ *
+ * Adds the name of the custom attribute to
+ * <CollectionPrototype>.__metadata__. This
+ * will be used by the framework so it knows
+ * what is the collection attribute which
+ * will store the models.
+ *
+ * @param proto
+ * @param attrName
+ */ function collection(proto, attrName) {
+    proto.__metadata__ = attrName;
 }
 
 var TodoModel = (function (_super) {

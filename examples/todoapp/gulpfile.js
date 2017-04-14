@@ -2,7 +2,10 @@ const
 	gulp = require('gulp'),
 	rollup = require('rollup'),
 	rollupTypeScript = require('rollup-plugin-typescript'),
-	typescript = require('typescript');
+	typescript = require('typescript'),
+    uglify = require('gulp-uglify'),
+    pump = require('pump'),
+    rename = require('gulp-rename');
 
 
 gulp.task('bundle', function() {
@@ -19,11 +22,18 @@ gulp.task('bundle', function() {
 			format: 'es',
 			dest: './dist/bundle.js',
 			sourceMap: true,
-			useStrict: true,
+            useStrict: true,
 		})
 	})
 
 });
+
+gulp.task('minify', function() {
+    return gulp.src('./dist/bundle.js'),
+            rename('bundle.min.js'),
+            uglify(),
+            gulp.dest('./dist');
+})
 
 gulp.task('watch', function() {
 	gulp.watch('./**/*.ts', ['bundle']);
