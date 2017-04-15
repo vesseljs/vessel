@@ -3,7 +3,7 @@
  */
 
 export interface ModelInterface {
-    __metadata__: string[];
+    __metadata__ ?: string[];
 }
 
 export interface ViewInterface {

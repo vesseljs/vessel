@@ -1,6 +1,6 @@
 import { AttribProxy } from './proxy';
-import { ModelInterface } from '@vessel/types/definitions';
 import { isArrayEmpty } from '@vessel/common/utils/src/utilities';
+import { ModelInterface } from '@vessel/types/definitions';
 
 /**
  * BaseModel class

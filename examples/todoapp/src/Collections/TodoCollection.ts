@@ -2,7 +2,7 @@ import { Collection as BaseCollection } from '@vessel/core';
 import { collection } from '@vessel/common/decorators';
 
 import { TodoModel } from '../Model/TodoModel';
-import {ModelInterface} from "../../../../packages/core/src/base/interfaces";
+import { ModelInterface } from '@vessel/types/definitions';
 
 //inject()
 export class TodoCollection extends BaseCollection {
@@ -15,7 +15,7 @@ export class TodoCollection extends BaseCollection {
         super();
     }
 
-    public getModel(): ModelInterface {
+    public getModel() {
         return TodoModel;
     }
 }
