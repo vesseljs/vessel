@@ -155,11 +155,30 @@ var AttribProxy = (function () {
 }());
 
 /**
+ * Vessel's Main class.
+ *
+ *
+ * All Models, views, collections
+ * will inherit this class.
+ */
+var Vessel = (function () {
+    function Vessel() {
+    }
+    Vessel.prototype.get = function () {
+        console.log('This is a test!');
+    };
+    return Vessel;
+}());
+
+/**
  * BaseModel class
  */
-var Model = (function () {
+var Model = (function (_super) {
+    __extends(Model, _super);
     function Model() {
-        this._createProxy();
+        var _this = _super.call(this) || this;
+        _this._createProxy();
+        return _this;
     }
     /**
      * Provides a way to set multiple
@@ -210,7 +229,7 @@ var Model = (function () {
         return this.constructor.name;
     };
     return Model;
-}());
+}(Vessel));
 // Since decorators are executed at runtime
 // and __metadata__ is an array which is used
 // by the @attr decorator, __metadata__ needs
@@ -219,9 +238,19 @@ var Model = (function () {
 // uses will throw an error.
 Model.prototype.__metadata__ = [];
 
+var View = (function (_super) {
+    __extends(View, _super);
+    function View() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    return View;
+}(Vessel));
+
 var prefixAttr = 'attr';
-var Collection = (function () {
+var Collection = (function (_super) {
+    __extends(Collection, _super);
     function Collection() {
+        return _super.call(this) || this;
     }
     Collection.prototype.add = function () {
         var args = [];
@@ -276,7 +305,7 @@ var Collection = (function () {
         return this[this.__metadata__];
     };
     return Collection;
-}());
+}(Vessel));
 
 /**
  * Decorator: @attr

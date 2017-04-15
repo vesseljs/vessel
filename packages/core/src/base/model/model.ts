@@ -1,11 +1,12 @@
 import { AttribProxy } from './proxy';
 import { isArrayEmpty } from '@vessel/common/utils/src/utilities';
 import { ModelInterface } from '@vessel/types/definitions';
+import { Vessel } from '../vessel';
 
 /**
  * BaseModel class
  */
-export class Model implements ModelInterface {
+export class Model extends Vessel implements ModelInterface {
 
     /**
      * Stores the names of the attributes, so
@@ -19,6 +20,7 @@ export class Model implements ModelInterface {
     protected attr: any;
 
     public constructor() {
+        super();
         this._createProxy();
     }
 

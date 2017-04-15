@@ -1,12 +1,17 @@
 import { isArray, filterOne, filter, matchPair, map } from '@vessel/common/utils';
 import { ModelInterface } from '@vessel/types/definitions';
+import { Vessel } from '../vessel'
 
 let prefixAttr = 'attr';
 
-export abstract class Collection {
+export abstract class Collection extends Vessel {
 
     public __metadata__: string;
     private collection: ModelInterface[];
+
+    public constructor() {
+        super();
+    }
 
     public add(...args) {
         let collection = this.getCollection(),
