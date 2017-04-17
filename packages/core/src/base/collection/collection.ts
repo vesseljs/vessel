@@ -5,21 +5,20 @@ let prefixAttr = 'attr';
 
 export abstract class Collection {
 
-    private className = this._getClassName();
-    private metadataKey = "__metadata__" + this.className + "__";
-    private collection: ModelInterface[];
-
+    public collection: ModelInterface[];
+    public model;
 
     public add(...args) {
         let collection = this.getCollection(),
-            Model = this.getModel();
+            Model = this.model,
+            metadataKey = this._getMetadataKey();
         try {
             collection.push(new Model(...args));
         } catch(e) {
             if (e instanceof TypeError) {
                 if ( !isArray(collection) ) {
                     console.error("TypeError: The collection '" +
-                        this.metadataKey + "' (" + typeof collection +
+                        metadataKey + "' (" + typeof collection +
                         ") must be an array.");
                 }
             }
@@ -73,14 +72,17 @@ export abstract class Collection {
     }
 
     private getCollection() {
-        return this[this[this.metadataKey]];
+        let metadataKey = this._getMetadataKey();
+        return this[this[metadataKey]];
+    }
+
+    private _getMetadataKey() {
+        return "__metadata__" + this._getClassName() + "__";
     }
 
     private _getClassName(): string {
         return this.constructor.name;
     }
-
-    abstract getModel();
 
 
 }

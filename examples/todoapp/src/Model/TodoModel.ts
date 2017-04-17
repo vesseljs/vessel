@@ -15,6 +15,8 @@ export class TodoModel extends BaseModel implements ModelInterface {
 
     constructor(author, body ) {
         super();
+        this.setAuthor( author );
+        this.setBody( body );
     }
 
     getAuthor() {

@@ -46,6 +46,7 @@ export function getKeys(obj) {
 
 export function each(obj, fn, context=null) {
     var i, len, keys, item, result;
+    if (!obj) return;
     if (isArray(obj)) {
         for (i = 0, len = obj.length; i < len; i++) {
             result = fn.call(context, obj[i], i, obj);

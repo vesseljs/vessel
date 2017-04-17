@@ -8,13 +8,6 @@ import { ModelInterface } from '@vessel/types/definitions';
 export class Model implements ModelInterface {
 
     /**
-     * Stores the names of the attributes, so
-     * the framework knows about them.
-     */
-    private className = this._getClassName();
-    private metadataKey = "__metadata__" + this.className + "__";
-
-    /**
      * Stores the attribute proxy.
      */
     protected attr: any;
@@ -43,12 +36,13 @@ export class Model implements ModelInterface {
      * @private
      */
     protected _createProxy() {
-        if ( isArrayEmpty(this.metadataKey) )
+        let metadataKey = this._getMetadataKey();
+        if ( isArrayEmpty(metadataKey) )
             throw TypeError("Attempt to create a proxy" +
                 " with no metadata.");
 
         this.attr = new AttribProxy();
-        for (let attrName of this.metadataKey) {
+        for (let attrName of metadataKey) {
             this.attr.addAttribute(attrName);
         }
     }
@@ -69,6 +63,10 @@ export class Model implements ModelInterface {
      */
     protected _validate( value, validationFn ) {
         return validationFn(value);
+    }
+
+    private _getMetadataKey() {
+        return "__metadata__" + this._getClassName() + "__";
     }
 
     private _getClassName(): string {

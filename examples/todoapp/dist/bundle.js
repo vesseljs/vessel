@@ -50,12 +50,6 @@ var AttribProxy = (function () {
  */
 var Model$$1 = (function () {
     function Model$$1() {
-        /**
-         * Stores the names of the attributes, so
-         * the framework knows about them.
-         */
-        this.className = this._getClassName();
-        this.metadataKey = "__metadata__" + this.className + "__";
         this._createProxy();
     }
     /**
@@ -77,12 +71,13 @@ var Model$$1 = (function () {
      * @private
      */
     Model$$1.prototype._createProxy = function () {
-        if (isArrayEmpty(this.metadataKey))
+        var metadataKey = this._getMetadataKey();
+        if (isArrayEmpty(metadataKey))
             throw TypeError("Attempt to create a proxy" +
                 " with no metadata.");
         this.attr = new AttribProxy();
-        for (var _i = 0, _a = this.metadataKey; _i < _a.length; _i++) {
-            var attrName = _a[_i];
+        for (var _i = 0, metadataKey_1 = metadataKey; _i < metadataKey_1.length; _i++) {
+            var attrName = metadataKey_1[_i];
             this.attr.addAttribute(attrName);
         }
     };
@@ -103,6 +98,9 @@ var Model$$1 = (function () {
     Model$$1.prototype._validate = function (value, validationFn) {
         return validationFn(value);
     };
+    Model$$1.prototype._getMetadataKey = function () {
+        return "__metadata__" + this._getClassName() + "__";
+    };
     Model$$1.prototype._getClassName = function () {
         return this.constructor.name;
     };
@@ -112,15 +110,13 @@ var Model$$1 = (function () {
 var prefixAttr = 'attr';
 var Collection$$1 = (function () {
     function Collection$$1() {
-        this.className = this._getClassName();
-        this.metadataKey = "__metadata__" + this.className + "__";
     }
     Collection$$1.prototype.add = function () {
         var args = [];
         for (var _i = 0; _i < arguments.length; _i++) {
             args[_i] = arguments[_i];
         }
-        var collection = this.getCollection(), Model$$1 = this.getModel();
+        var collection = this.getCollection(), Model$$1 = this.model, metadataKey = this._getMetadataKey();
         try {
             collection.push(new (Model$$1.bind.apply(Model$$1, [void 0].concat(args)))());
         }
@@ -128,7 +124,7 @@ var Collection$$1 = (function () {
             if (e instanceof TypeError) {
                 if (!isArray(collection)) {
                     console.error("TypeError: The collection '" +
-                        this.metadataKey + "' (" + typeof collection +
+                        metadataKey + "' (" + typeof collection +
                         ") must be an array.");
                 }
             }
@@ -165,7 +161,11 @@ var Collection$$1 = (function () {
         return this;
     };
     Collection$$1.prototype.getCollection = function () {
-        return this[this[this.metadataKey]];
+        var metadataKey = this._getMetadataKey();
+        return this[this[metadataKey]];
+    };
+    Collection$$1.prototype._getMetadataKey = function () {
+        return "__metadata__" + this._getClassName() + "__";
     };
     Collection$$1.prototype._getClassName = function () {
         return this.constructor.name;
@@ -209,7 +209,9 @@ function isArrayEmpty(arr) {
         return true;
     return false;
 }
-
+function findItem(arr, value) {
+    return arr.indexOf(value) !== -1;
+}
 function isFunction(fn) {
     if (fn == undefined)
         return false;
@@ -232,6 +234,8 @@ function getKeys(obj) {
 function each(obj, fn, context) {
     if (context === void 0) { context = null; }
     var i, len, keys, item, result;
+    if (!obj)
+        return;
     if (isArray(obj)) {
         for (i = 0, len = obj.length; i < len; i++) {
             result = fn.call(context, obj[i], i, obj);
@@ -286,6 +290,188 @@ function filterOne(arr, fn, context) {
 
 // Base
 // Services
+
+var Container = (function () {
+    function Container() {
+        this.modules = {};
+        this.cache = new WeakMap();
+    }
+    Container.prototype.register = function (opts) {
+        this.modules = opts;
+        return this;
+    };
+    Container.prototype.startModule = function (name) {
+        return this.resolveDependencies(name);
+    };
+    Container.prototype.resolveDependencies = function (name) {
+        var match = this.findModuleByName(name), moduleType = match.type, constructor = match.constructor, key = "__dependencies__" + constructor.name + "__", dependencies = constructor.prototype[key], topParent = {
+            name: name,
+            constructor: constructor
+        };
+        if (!match) {
+            throw new TypeError("Attempt to get " +
+                "non-existent module: '" +
+                name + "'. Did you register it?");
+        }
+        each(dependencies, function (item) {
+            this.inject(item.depName, item.attrName, [], null, topParent);
+        }, this);
+        return this.loadDependency(moduleType, name);
+    };
+    Container.prototype.inject = function (depName, attrName, parents, constructor, topParent) {
+        if (parents === void 0) { parents = []; }
+        if (constructor === void 0) { constructor = null; }
+        var key, depType, depDependencies, depConstructor, match = this.findModuleByName(depName);
+        if (!match) {
+            throw new TypeError("Attempt to inject " +
+                "non-existent dependency: '" +
+                depName + "'. Did you register it?");
+        }
+        depType = match.type;
+        depConstructor = match.constructor;
+        key = "__dependencies__" + depConstructor.name + "__";
+        depDependencies = depConstructor.prototype[key];
+        if (this.isCircular(depName, parents, topParent)) {
+            throw new RangeError("Circular dependency detected: " +
+                "module injection was impossible. Attempting to " +
+                "inject '" + depName + "' which have tried to " +
+                "resolve a parent dependency.");
+        }
+        parents.push(depName);
+        each(depDependencies, function (item) {
+            this.inject(item.depName, item.attrName, parents, depConstructor, topParent);
+        }, this);
+        // Only the top-parent dependency enters here.
+        if (parents.length === 1) {
+            // Inject the very first parent dependency
+            // to the module prototype.
+            return topParent.constructor.prototype[attrName] = this.loadDependency(depType, depName);
+        }
+        // Children dependencies enter here.
+        parents.pop();
+        // Inject the dependency to the parent prototype.
+        return constructor.prototype[attrName] = this.loadDependency(depType, depName);
+    };
+    // Module is requested by get() as dependency
+    Container.prototype.loadDependency = function (type, name) {
+        var constructor = this.modules[type][name];
+        if (type !== 'models')
+            return this.loadModule(constructor);
+        return constructor;
+    };
+    // Module is requested by startModule()
+    Container.prototype.loadModule = function (constructor) {
+        var cache = this.cache;
+        if (!cache.has(constructor))
+            cache.set(constructor, new constructor());
+        return cache.get(constructor);
+    };
+    // Factorizar findModule
+    Container.prototype.findModuleByName = function (queryName) {
+        var i, moduleType, module, modules = this.modules, keys = getKeys(modules), len = keys.length;
+        for (i = 0; i < len; i++) {
+            moduleType = keys[i];
+            module = modules[moduleType];
+            if (module.hasOwnProperty(queryName))
+                return {
+                    type: moduleType,
+                    name: queryName,
+                    constructor: modules[moduleType][queryName]
+                };
+        }
+        return null;
+    };
+    Container.prototype.isCircular = function (depName, parents, topParent) {
+        return depName === topParent.name || findItem(parents, depName);
+    };
+    return Container;
+}());
+
+function setupContainer(namespace) {
+    return namespace.container = new Container();
+}
+
+/**
+ * Decorator: @get(moduleName)
+ *
+ * Adds the dependencies to the
+ * <Prototype>.dependenciesKEY. This will
+ * be used by the framework so it knows what
+ * are the dependencies that it will need.
+ * The resolved module will be injected into
+ * the applied attribute.
+ *
+ * Why Dependency Key?
+ *
+ * Since in javascript/ts decorators are executed
+ * at runtime, we cannot access to instances, we
+ * will be able to modify the prototype only.
+ * That's great until developers extends its
+ * classes (for example Model BasketBall extends
+ * Model Ball), that said we need classes to have
+ * its own metadata key which is accesible by
+ * its children but each class will modify only
+ * its own metadata key.
+ *
+ * Symbols and WeakMaps are great, but we need
+ * a key variable to store them so the instance can
+ * retrieve it later, and we have no access
+ * to the instances, so we couldn't assign a different
+ * symbol stored in the same variable in the prototype.
+ *
+ * We don't want private key properties between instances,
+ * but between prototypes.
+ *
+ * @param depName
+ * @returns {(constructor:any, attrName:any, $depName:any)=>undefined}
+ */
+/**
+ * Decorator: @get(moduleName)
+ *
+ * Adds the dependencies to the
+ * <Prototype>.dependenciesKEY. This will
+ * be used by the framework so it knows what
+ * are the dependencies that it will need.
+ * The resolved module will be injected into
+ * the applied attribute.
+ *
+ * Why Dependency Key?
+ *
+ * Since in javascript/ts decorators are executed
+ * at runtime, we cannot access to instances, we
+ * will be able to modify the prototype only.
+ * That's great until developers extends its
+ * classes (for example Model BasketBall extends
+ * Model Ball), that said we need classes to have
+ * its own metadata key which is accesible by
+ * its children but each class will modify only
+ * its own metadata key.
+ *
+ * Symbols and WeakMaps are great, but we need
+ * a key variable to store them so the instance can
+ * retrieve it later, and we have no access
+ * to the instances, so we couldn't assign a different
+ * symbol stored in the same variable in the prototype.
+ *
+ * We don't want private key properties between instances,
+ * but between prototypes.
+ *
+ * @param depName
+ * @returns {(constructor:any, attrName:any, $depName:any)=>undefined}
+ */ function get(depName) {
+    return function (proto, attrName) {
+        var className = proto._getClassName(), key = "__dependencies__" + className + "__";
+        if (!proto.hasOwnProperty(key)) {
+            proto[key] = [];
+        }
+        proto[key].push({
+            attrName: attrName,
+            depName: depName
+        });
+    };
+}
+
+// Boot
 
 /**
  * Decorator: @attr
@@ -471,7 +657,10 @@ function validate(validationFn) {
 var TodoModel = (function (_super) {
     __extends(TodoModel, _super);
     function TodoModel(author, body) {
-        return _super.call(this) || this;
+        var _this = _super.call(this) || this;
+        _this.setAuthor(author);
+        _this.setBody(body);
+        return _this;
     }
     TodoModel.prototype.getAuthor = function () {
         return this.attr.author;
@@ -519,63 +708,39 @@ __decorate([
 var TodoCollection = (function (_super) {
     __extends(TodoCollection, _super);
     function TodoCollection() {
-        var _this = _super.call(this) || this;
+        var _this = _super !== null && _super.apply(this, arguments) || this;
         _this.todos = [];
         return _this;
     }
-    TodoCollection.prototype.getModel = function () {
-        return TodoModel;
-    };
     return TodoCollection;
 }(Collection$$1));
 __decorate([
     collection
 ], TodoCollection.prototype, "todos", void 0);
-
-var TestCollection = (function (_super) {
-    __extends(TestCollection, _super);
-    function TestCollection() {
-        var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.data = [];
-        return _this;
-    }
-    TestCollection.prototype.getModel = function () {
-    };
-    return TestCollection;
-}(Collection$$1));
 __decorate([
-    collection
-], TestCollection.prototype, "data", void 0);
-
-var TestModel = (function (_super) {
-    __extends(TestModel, _super);
-    function TestModel(name) {
-        return _super.call(this, 'test', 'tete') || this;
-    }
-    return TestModel;
-}(TodoModel));
-__decorate([
-    attr
-], TestModel.prototype, "name", void 0);
+    get('model.todo')
+], TodoCollection.prototype, "model", void 0);
 
 $App = new App$$1().browserBoot();
-/*
-$App.register({
+setupContainer($App).register({
     models: {
         'model.todo': TodoModel,
     },
     collections: {
         'collection.todos': TodoCollection
     },
-    views: {
-    }
+    views: {}
 });
-*/
+var x = $App.container.startModule('collection.todos');
 //app.x = new TodoModel('pe', 'body 1');
 //app.y = new TodoModel('alex', 'body 2');
+/*x
 $App["collection"] = new TodoCollection();
 $App["collection"].add('pedro!', 'body 1');
+
 $App["collection2"] = new TestCollection();
+
 $App["model"] = new TodoModel('pedro', 'jejejej');
 $App["model2"] = new TestModel('nombree');
+*/
 //# sourceMappingURL=bundle.js.map
