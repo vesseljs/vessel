@@ -15,7 +15,7 @@ export class Container {
         return this.resolveDependencies(name);
     }
 
-    public resolveDependencies(name) {
+    private resolveDependencies(name) {
         let match = this.findModuleByName(name),
             moduleType = match.type,
             constructor = match.constructor,
@@ -39,7 +39,7 @@ export class Container {
         return this.loadDependency(moduleType, name);
     }
 
-    public inject(depName, attrName, parents=[], constructor=null, topParent) {
+    private inject(depName, attrName, parents=[], constructor=null, topParent) {
         let key,
             depType,
             depDependencies,
@@ -89,7 +89,7 @@ export class Container {
         return constructor.prototype[attrName] = this.loadDependency(depType, depName);
     }
 
-    loadDependency(type, name) {
+    private loadDependency(type, name) {
         let constructor = this.modules[type][name];
 
         if (type !== 'models')
@@ -98,7 +98,7 @@ export class Container {
         return constructor;
     }
 
-    loadModule(constructor) {
+    private loadModule(constructor) {
         let cache = this.cache;
 
         if (!cache.has(constructor))
@@ -107,8 +107,7 @@ export class Container {
         return cache.get(constructor);
     }
 
-    // Factorizar findModule
-    findModuleByName(queryName) {
+    private findModuleByName(queryName) {
         let i,
             moduleType,
             module,
@@ -128,7 +127,7 @@ export class Container {
         return null;
     }
 
-    isCircular(depName, parents, topParent) {
+    private isCircular(depName, parents, topParent) {
         return depName === topParent.name || findItem(parents, depName);
     }
 }
