@@ -2,6 +2,10 @@
 ####################
 prototype/*
 dist/*
+packages/**/*.map
+# Framework is completely coded in typescript
+# JS files are just compiled files
+packages/**/*.js
 
 # Env
 ####################
