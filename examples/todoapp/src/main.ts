@@ -1,9 +1,25 @@
-import { App } from '@vessel/boot';
-import { TodoCollection } from './Collections/TodoCollection';
+import { Collection, View, App } from '@vessel/core';
+
+import { TodoModel } from './Model/TodoModel';
+import { TodoCollection } from './Collection/TodoCollection';
 
 declare var $App;
 
 $App = new App().browserBoot();
+
+
+$App.register({
+    models: {
+        'model.todo': TodoModel,
+    },
+    collections: {
+        'collection.todos': TodoCollection
+    },
+    views: {
+    }
+});
+
+
 
 //app.x = new TodoModel('pe', 'body 1');
 //app.y = new TodoModel('alex', 'body 2');

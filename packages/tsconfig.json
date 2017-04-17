@@ -9,16 +9,12 @@
     "experimentalDecorators": true,
     "lib": ["es6", "dom"],
     "paths": {
-      "@vessel/common/*": [ "common/*" ],
-      "@vessel/core/*": ["core/*"],
-      "@vessel/boot/*": ["boot/*"],
+      "@vessel/core": ["core/"],
+      "@vessel/decorators/*": ["decorators/*"],
       "@vessel/dom/*": ["dom/*"],
       "@vessel/router/*": ["router/*"],
       "@vessel/vessel-cli/*": ["vessel-cli/*"],
       "@vessel/types/*": ["types/*"]
-    },
-    "include": [
-      "types/definitions.d.ts"
-    ]
+    }
   }
 }

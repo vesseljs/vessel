@@ -36,5 +36,8 @@ gulp.task('minify', function() {
 })
 
 gulp.task('watch', function() {
-	gulp.watch('./**/*.ts', ['bundle']);
+	gulp.watch(['./**/*.ts',
+				'./**/*.js',
+                './**/*.html',
+                './**/*.jsx'], ['bundle']);
 });

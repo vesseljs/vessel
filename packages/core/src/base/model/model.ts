@@ -1,7 +1,6 @@
 import { AttribProxy } from './proxy';
-import { isArrayEmpty } from '@vessel/common/utils/src/utilities';
+import { isArrayEmpty, Vessel} from '@vessel/core';
 import { ModelInterface } from '@vessel/types/definitions';
-import { Vessel } from '../vessel';
 
 /**
  * BaseModel class
@@ -13,6 +12,7 @@ export class Model extends Vessel implements ModelInterface {
      * the framework knows about them.
      */
     public __metadata__;
+    public __dependencies__;
 
     /**
      * Stores the attribute proxy.
@@ -86,3 +86,4 @@ export class Model extends Vessel implements ModelInterface {
 // uses will throw an error.
 
 Model.prototype.__metadata__ = [];
+Model.prototype.__dependencies__ = [];

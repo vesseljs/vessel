@@ -1,5 +1,3 @@
-export const app = {
+export var models = [
 
-		
-
-}
+]

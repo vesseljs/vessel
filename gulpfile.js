@@ -8,7 +8,7 @@ gulp.task('copy:package', function() {
 })
 
 gulp.task('copy:toexample', function() {
-	gulp.src(['./dist/@vessel/**/*'])
+	gulp.src(['./packages/**/*'])
 		.pipe(gulp.dest('./examples/todoapp/node_modules/@vessel'));
 })
 

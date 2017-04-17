@@ -1,4 +1,4 @@
-import { defineProp } from '@vessel/common/utils/src/utilities';
+import { defineProp } from 'core';
 
 /**
  * Attribute proxy.

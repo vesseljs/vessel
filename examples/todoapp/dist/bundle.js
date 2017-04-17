@@ -42,20 +42,20 @@ function getKeys(obj) {
 }
 function each(obj, fn, context) {
     if (context === void 0) { context = null; }
-    var i, len, keys, item;
+    var i, len, keys, item, result;
     if (isArray(obj)) {
         for (i = 0, len = obj.length; i < len; i++) {
-            fn.call(context, obj[i], i, obj);
+            result = fn.call(context, obj[i], i, obj);
         }
     }
     else {
         keys = getKeys(obj);
         for (i = 0, len = keys.length; i < len; i++) {
             item = keys[i];
-            fn.call(context, item, obj[item], obj);
+            result = fn.call(context, item, obj[item], obj);
         }
     }
-    return obj;
+    return result;
 }
 function matchPair(obj, attrs) {
     var keys = getKeys(attrs), len = keys.length, key, i;
@@ -95,6 +95,54 @@ function filterOne(arr, fn, context) {
     return false;
 }
 
+var GlobalContainer = (function () {
+    function GlobalContainer() {
+        this.modules = {};
+        this.cache = {};
+    }
+    GlobalContainer.prototype.register = function (opts) {
+        var _this = this;
+        this.modules = opts;
+        var models = opts.models;
+        each(models, function (name) {
+            _this.load('models', name);
+        }, this);
+    };
+    GlobalContainer.prototype.get = function (module) {
+        var match, cache = this.cache;
+        if (cache.hasOwnProperty(module)) {
+            return cache[module];
+        }
+        match = this.findModuleByName(module);
+        if (!match) {
+            throw TypeError("Attempt to get non-existent module: '" +
+                module + "'. Did you register it?");
+        }
+        return this.load(match.type, match.name);
+    };
+    GlobalContainer.prototype.load = function (type, name) {
+        var constructor = this.modules[type][name];
+        if (type !== 'models') {
+            return this.cache[name] = new constructor();
+        }
+        return this.cache[name] = constructor;
+    };
+    GlobalContainer.prototype.findModuleByName = function (queryName) {
+        var i, moduleType, module, modules = this.modules, keys = getKeys(modules), len = keys.length;
+        for (i = 0; i < len; i++) {
+            moduleType = keys[i];
+            module = modules[moduleType];
+            if (module.hasOwnProperty(queryName))
+                return {
+                    type: moduleType,
+                    name: queryName
+                };
+        }
+        return null;
+    };
+    return GlobalContainer;
+}());
+
 var App = (function () {
     function App() {
     }
@@ -102,6 +150,13 @@ var App = (function () {
         this.detectBrowserFeatures();
         this.loadContainer();
         return this;
+    };
+    App.prototype.register = function (opts) {
+        if (!this.container) {
+            throw new TypeError("You can't register modules before calling" +
+                " AppInterface:browserBoot().");
+        }
+        this.container.register(opts);
     };
     App.prototype.detectBrowserFeatures = function () {
         this.can = {
@@ -111,10 +166,7 @@ var App = (function () {
     };
     // TODO - WeakMap fallback
     App.prototype.loadContainer = function () {
-        this.container =
-            this.can.WeakMap ?
-                new WeakMap() :
-                "Dev: WeakMap fallback - work in progress";
+        this.container = new GlobalContainer();
         return this;
     };
     return App;
@@ -157,15 +209,14 @@ var AttribProxy = (function () {
 /**
  * Vessel's Main class.
  *
- *
- * All Models, views, collections
+ * Models, views, collections
  * will inherit this class.
  */
 var Vessel = (function () {
     function Vessel() {
     }
-    Vessel.prototype.get = function () {
-        console.log('This is a test!');
+    Vessel.prototype.get = function (module) {
+        return window.$App.container.get(module);
     };
     return Vessel;
 }());
@@ -237,6 +288,7 @@ var Model = (function (_super) {
 // Otherwise, the push method that the decorator
 // uses will throw an error.
 Model.prototype.__metadata__ = [];
+Model.prototype.__dependencies__ = [];
 
 var View = (function (_super) {
     __extends(View, _super);
@@ -245,6 +297,7 @@ var View = (function (_super) {
     }
     return View;
 }(Vessel));
+View.prototype.__dependencies__ = [];
 
 var prefixAttr = 'attr';
 var Collection = (function (_super) {
@@ -306,6 +359,7 @@ var Collection = (function (_super) {
     };
     return Collection;
 }(Vessel));
+Collection.prototype.__dependencies__ = [];
 
 /**
  * Decorator: @attr
@@ -329,6 +383,7 @@ var Collection = (function (_super) {
  * @param proto
  * @param attrName
  */ function attr(proto, attrName) {
+    console.error('soy el decorador del atributo!');
     proto.__metadata__.push(attrName);
 }
 
@@ -396,6 +451,20 @@ function validate(validationFn) {
     proto.__metadata__ = attrName;
 }
 
+function get(moduleName) {
+    return function (proto, attrName) {
+        proto.__dependencies__.push({
+            attr: attrName,
+            module: moduleName
+        });
+    };
+}
+
+function model(proto) {
+    var x = proto;
+    console.log('Soy el decorador de la clase!', x);
+}
+
 var TodoModel = (function (_super) {
     __extends(TodoModel, _super);
     function TodoModel(author, body) {
@@ -446,8 +515,10 @@ __decorate([
         return true;
     })
 ], TodoModel.prototype, "setBody", null);
+TodoModel = __decorate([
+    model
+], TodoModel);
 
-//inject()
 var TodoCollection = (function (_super) {
     __extends(TodoCollection, _super);
     function TodoCollection() {
@@ -465,6 +536,53 @@ __decorate([
 ], TodoCollection.prototype, "todos", void 0);
 
 $App = new App().browserBoot();
+var Test = (function (_super) {
+    __extends(Test, _super);
+    function Test() {
+        return _super.call(this) || this;
+    }
+    Test.prototype.getModel = function () {
+    };
+    return Test;
+}(Collection));
+__decorate([
+    get('test2')
+], Test.prototype, "test2", void 0);
+var Test3 = (function (_super) {
+    __extends(Test3, _super);
+    function Test3() {
+        return _super.call(this) || this;
+    }
+    Test3.prototype.getModel = function () {
+    };
+    return Test3;
+}(Collection));
+__decorate([
+    get('test3')
+], Test3.prototype, "test", void 0);
+var Test2 = (function (_super) {
+    __extends(Test2, _super);
+    function Test2() {
+        return _super.call(this) || this;
+    }
+    return Test2;
+}(View));
+__decorate([
+    get('test')
+], Test2.prototype, "test", void 0);
+$App.register({
+    models: {
+        'model.todo': TodoModel,
+    },
+    collections: {
+        'collection.todos': TodoCollection
+    },
+    views: {
+        'test2': Test2,
+        'test': Test,
+        'test3': Test3
+    }
+});
 //app.x = new TodoModel('pe', 'body 1');
 //app.y = new TodoModel('alex', 'body 2');
 $App["collection"] = new TodoCollection();

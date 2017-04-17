@@ -6,6 +6,6 @@
  */
 export class Vessel {
 
-    public get() {
-    }
 }
+
+

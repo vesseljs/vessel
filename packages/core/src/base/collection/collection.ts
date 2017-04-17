@@ -1,4 +1,4 @@
-import { isArray, filterOne, filter, matchPair, map } from '@vessel/common/utils';
+import { isArray, filterOne, filter, matchPair, map } from '@vessel/core';
 import { ModelInterface } from '@vessel/types/definitions';
 import { Vessel } from '../vessel'
 
@@ -7,6 +7,7 @@ let prefixAttr = 'attr';
 export abstract class Collection extends Vessel {
 
     public __metadata__: string;
+    public __dependencies__;
     private collection: ModelInterface[];
 
     public constructor() {
@@ -81,3 +82,5 @@ export abstract class Collection extends Vessel {
 
     abstract getModel();
 }
+
+Collection.prototype.__dependencies__ = [];
