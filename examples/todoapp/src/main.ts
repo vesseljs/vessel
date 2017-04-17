@@ -3,11 +3,14 @@ import { Collection, View, App } from '@vessel/core';
 import { TodoModel } from './Model/TodoModel';
 import { TodoCollection } from './Collection/TodoCollection';
 
+import {TestCollection} from "./Collection/TestCollection";
+import {TestModel} from "./Model/TestModel";
+
 declare var $App;
 
 $App = new App().browserBoot();
 
-
+/*
 $App.register({
     models: {
         'model.todo': TodoModel,
@@ -18,6 +21,7 @@ $App.register({
     views: {
     }
 });
+*/
 
 
 
@@ -26,7 +30,8 @@ $App.register({
 
 $App["collection"] = new TodoCollection();
 $App["collection"].add('pedro!', 'body 1');
-$App["collection"].add('javi!', 'body 2');
-$App["collection"].add('fran!', 'body 3');
-$App["collection"].add('jose!', 'body 4');
-$App["collection"].add('javier!', 'body 4');
+
+$App["collection2"] = new TestCollection();
+
+$App["model"] = new TodoModel('pedro', 'jejejej');
+$App["model2"] = new TestModel('nombree');

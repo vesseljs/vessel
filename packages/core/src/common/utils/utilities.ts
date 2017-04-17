@@ -15,7 +15,9 @@ export function isArray( arr ) {
 }
 
 export function isArrayEmpty( arr ) {
-    return arr.length === 0
+    if (!arr) return true;
+    if (arr.length === 0) return true;
+    return false;
 }
 
 export function findItem( arr, value ) {

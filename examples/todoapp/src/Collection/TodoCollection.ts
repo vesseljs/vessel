@@ -1,5 +1,5 @@
 import { Collection as BaseCollection } from '@vessel/core';
-import { collection } from '@vessel/common/decorators';
+import { collection } from '@vessel/decorators';
 
 import { TodoModel } from '../Model/TodoModel';
 

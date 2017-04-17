@@ -1,18 +1,18 @@
 import { AttribProxy } from './proxy';
-import { isArrayEmpty, Vessel} from '@vessel/core';
+import { isArrayEmpty } from '@vessel/core';
 import { ModelInterface } from '@vessel/types/definitions';
 
 /**
  * BaseModel class
  */
-export class Model extends Vessel implements ModelInterface {
+export class Model implements ModelInterface {
 
     /**
      * Stores the names of the attributes, so
      * the framework knows about them.
      */
-    public __metadata__;
-    public __dependencies__;
+    private className = this._getClassName();
+    private metadataKey = "__metadata__" + this.className + "__";
 
     /**
      * Stores the attribute proxy.
@@ -20,7 +20,6 @@ export class Model extends Vessel implements ModelInterface {
     protected attr: any;
 
     public constructor() {
-        super();
         this._createProxy();
     }
 
@@ -44,12 +43,12 @@ export class Model extends Vessel implements ModelInterface {
      * @private
      */
     protected _createProxy() {
-        if ( isArrayEmpty(this.__metadata__) )
+        if ( isArrayEmpty(this.metadataKey) )
             throw TypeError("Attempt to create a proxy" +
                 " with no metadata.");
 
         this.attr = new AttribProxy();
-        for (let attrName of this.__metadata__) {
+        for (let attrName of this.metadataKey) {
             this.attr.addAttribute(attrName);
         }
     }
@@ -77,13 +76,3 @@ export class Model extends Vessel implements ModelInterface {
     }
 
 }
-
-// Since decorators are executed at runtime
-// and __metadata__ is an array which is used
-// by the @attr decorator, __metadata__ needs
-// to be declared outside the class.
-// Otherwise, the push method that the decorator
-// uses will throw an error.
-
-Model.prototype.__metadata__ = [];
-Model.prototype.__dependencies__ = [];

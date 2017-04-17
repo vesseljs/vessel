@@ -1,18 +1,14 @@
 import { isArray, filterOne, filter, matchPair, map } from '@vessel/core';
 import { ModelInterface } from '@vessel/types/definitions';
-import { Vessel } from '../vessel'
 
 let prefixAttr = 'attr';
 
-export abstract class Collection extends Vessel {
+export abstract class Collection {
 
-    public __metadata__: string;
-    public __dependencies__;
+    private className = this._getClassName();
+    private metadataKey = "__metadata__" + this.className + "__";
     private collection: ModelInterface[];
 
-    public constructor() {
-        super();
-    }
 
     public add(...args) {
         let collection = this.getCollection(),
@@ -23,7 +19,7 @@ export abstract class Collection extends Vessel {
             if (e instanceof TypeError) {
                 if ( !isArray(collection) ) {
                     console.error("TypeError: The collection '" +
-                        this.__metadata__ + "' (" + typeof collection +
+                        this.metadataKey + "' (" + typeof collection +
                         ") must be an array.");
                 }
             }
@@ -77,10 +73,14 @@ export abstract class Collection extends Vessel {
     }
 
     private getCollection() {
-        return this[this.__metadata__];
+        return this[this[this.metadataKey]];
+    }
+
+    private _getClassName(): string {
+        return this.constructor.name;
     }
 
     abstract getModel();
-}
 
-Collection.prototype.__dependencies__ = [];
+
+}

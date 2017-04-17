@@ -11,6 +11,191 @@ function __decorate(decorators, target, key, desc) {
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 }
 
+/**
+ * Attribute proxy.
+ *
+ * Intercepts each setter/getter of
+ * each model's attribute so it can
+ * trigger events.
+ */
+var AttribProxy = (function () {
+    function AttribProxy() {
+        /**
+         * Stores the state of the
+         * model's attributes.
+         *
+         * @type {any{} }
+         */
+        this.data = {};
+    }
+    /**
+     * Setups a new attribute, installs
+     * the getter and setter interceptors.
+     *
+     * @param name
+     */
+    AttribProxy.prototype.addAttribute = function (name) {
+        this.data[name] = "";
+        defineProp(this, name, function getter() {
+            return this.data[name];
+        }, function setter(value) {
+            this.data[name] = value;
+        });
+    };
+    return AttribProxy;
+}());
+
+/**
+ * BaseModel class
+ */
+var Model$$1 = (function () {
+    function Model$$1() {
+        /**
+         * Stores the names of the attributes, so
+         * the framework knows about them.
+         */
+        this.className = this._getClassName();
+        this.metadataKey = "__metadata__" + this.className + "__";
+        this._createProxy();
+    }
+    /**
+     * Provides a way to set multiple
+     * attributes at once.
+     *
+     * @param attrs
+     */
+    // TODO - Validation within set
+    Model$$1.prototype.set = function (attrs) {
+        for (var attr in attrs) {
+            this.attr[attr] = attrs[attr];
+        }
+    };
+    /**
+     * Instances the attribute proxy, it adds each
+     * attribute defined in the model with the
+     * 'attr' decorator to the proxy.
+     * @private
+     */
+    Model$$1.prototype._createProxy = function () {
+        if (isArrayEmpty(this.metadataKey))
+            throw TypeError("Attempt to create a proxy" +
+                " with no metadata.");
+        this.attr = new AttribProxy();
+        for (var _i = 0, _a = this.metadataKey; _i < _a.length; _i++) {
+            var attrName = _a[_i];
+            this.attr.addAttribute(attrName);
+        }
+    };
+    /**
+     * Whenever a validation takes place, this
+     * function will be invoked. All built-in
+     * general validations will be checked here.
+     *
+     * This function is responsible for return
+     * the results of the custom defined
+     * validationFn.
+     *
+     * @param value
+     * @param validationFn
+     * @returns boolean
+     * @private
+     */
+    Model$$1.prototype._validate = function (value, validationFn) {
+        return validationFn(value);
+    };
+    Model$$1.prototype._getClassName = function () {
+        return this.constructor.name;
+    };
+    return Model$$1;
+}());
+
+var prefixAttr = 'attr';
+var Collection$$1 = (function () {
+    function Collection$$1() {
+        this.className = this._getClassName();
+        this.metadataKey = "__metadata__" + this.className + "__";
+    }
+    Collection$$1.prototype.add = function () {
+        var args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            args[_i] = arguments[_i];
+        }
+        var collection = this.getCollection(), Model$$1 = this.getModel();
+        try {
+            collection.push(new (Model$$1.bind.apply(Model$$1, [void 0].concat(args)))());
+        }
+        catch (e) {
+            if (e instanceof TypeError) {
+                if (!isArray(collection)) {
+                    console.error("TypeError: The collection '" +
+                        this.metadataKey + "' (" + typeof collection +
+                        ") must be an array.");
+                }
+            }
+        }
+    };
+    Collection$$1.prototype.find = function (attrs) {
+        return filterOne(this.getCollection(), function (item) {
+            return matchPair(item[prefixAttr], attrs);
+        });
+    };
+    Collection$$1.prototype.findAll = function (attrs) {
+        return filter(this.getCollection(), function (item) {
+            return matchPair(item[prefixAttr], attrs);
+        });
+    };
+    Collection$$1.prototype.pull = function (attrName) {
+        return map(this.getCollection(), function (item) {
+            return item[prefixAttr][attrName];
+        });
+    };
+    Collection$$1.prototype.sort = function () {
+    };
+    Collection$$1.prototype.remove = function () {
+    };
+    Collection$$1.prototype.removeById = function () {
+    };
+    Collection$$1.prototype.update = function () {
+    };
+    Collection$$1.prototype.save = function () {
+    };
+    Collection$$1.prototype.fetch = function () {
+    };
+    Collection$$1.prototype.willRetrieve = function () {
+        return this;
+    };
+    Collection$$1.prototype.getCollection = function () {
+        return this[this[this.metadataKey]];
+    };
+    Collection$$1.prototype._getClassName = function () {
+        return this.constructor.name;
+    };
+    return Collection$$1;
+}());
+
+/**
+ * Vessel's Main class.
+ *
+ * Models, views, collections
+ * will inherit this class.
+ */
+
+var App$$1 = (function () {
+    function App$$1() {
+    }
+    App$$1.prototype.browserBoot = function () {
+        this.detectBrowserFeatures();
+        return this;
+    };
+    App$$1.prototype.detectBrowserFeatures = function () {
+        this.can = {
+            WeakMap: isSupported(window.WeakMap)
+        };
+        return this;
+    };
+    return App$$1;
+}());
+
 function isSupported(feature) {
     return typeof feature == 'function';
 }
@@ -18,7 +203,11 @@ function isArray(arr) {
     return Array.isArray(arr);
 }
 function isArrayEmpty(arr) {
-    return arr.length === 0;
+    if (!arr)
+        return true;
+    if (arr.length === 0)
+        return true;
+    return false;
 }
 
 function isFunction(fn) {
@@ -95,279 +284,37 @@ function filterOne(arr, fn, context) {
     return false;
 }
 
-var GlobalContainer = (function () {
-    function GlobalContainer() {
-        this.modules = {};
-        this.cache = {};
-    }
-    GlobalContainer.prototype.register = function (opts) {
-        var _this = this;
-        this.modules = opts;
-        var models = opts.models;
-        each(models, function (name) {
-            _this.load('models', name);
-        }, this);
-    };
-    GlobalContainer.prototype.get = function (module) {
-        var match, cache = this.cache;
-        if (cache.hasOwnProperty(module)) {
-            return cache[module];
-        }
-        match = this.findModuleByName(module);
-        if (!match) {
-            throw TypeError("Attempt to get non-existent module: '" +
-                module + "'. Did you register it?");
-        }
-        return this.load(match.type, match.name);
-    };
-    GlobalContainer.prototype.load = function (type, name) {
-        var constructor = this.modules[type][name];
-        if (type !== 'models') {
-            return this.cache[name] = new constructor();
-        }
-        return this.cache[name] = constructor;
-    };
-    GlobalContainer.prototype.findModuleByName = function (queryName) {
-        var i, moduleType, module, modules = this.modules, keys = getKeys(modules), len = keys.length;
-        for (i = 0; i < len; i++) {
-            moduleType = keys[i];
-            module = modules[moduleType];
-            if (module.hasOwnProperty(queryName))
-                return {
-                    type: moduleType,
-                    name: queryName
-                };
-        }
-        return null;
-    };
-    return GlobalContainer;
-}());
-
-var App = (function () {
-    function App() {
-    }
-    App.prototype.browserBoot = function () {
-        this.detectBrowserFeatures();
-        this.loadContainer();
-        return this;
-    };
-    App.prototype.register = function (opts) {
-        if (!this.container) {
-            throw new TypeError("You can't register modules before calling" +
-                " AppInterface:browserBoot().");
-        }
-        this.container.register(opts);
-    };
-    App.prototype.detectBrowserFeatures = function () {
-        this.can = {
-            WeakMap: isSupported(window.WeakMap)
-        };
-        return this;
-    };
-    // TODO - WeakMap fallback
-    App.prototype.loadContainer = function () {
-        this.container = new GlobalContainer();
-        return this;
-    };
-    return App;
-}());
-
-/**
- * Attribute proxy.
- *
- * Intercepts each setter/getter of
- * each model's attribute so it can
- * trigger events.
- */
-var AttribProxy = (function () {
-    function AttribProxy() {
-        /**
-         * Stores the state of the
-         * model's attributes.
-         *
-         * @type {any{} }
-         */
-        this.data = {};
-    }
-    /**
-     * Setups a new attribute, installs
-     * the getter and setter interceptors.
-     *
-     * @param name
-     */
-    AttribProxy.prototype.addAttribute = function (name) {
-        this.data[name] = "";
-        defineProp(this, name, function getter() {
-            return this.data[name];
-        }, function setter(value) {
-            this.data[name] = value;
-        });
-    };
-    return AttribProxy;
-}());
-
-/**
- * Vessel's Main class.
- *
- * Models, views, collections
- * will inherit this class.
- */
-var Vessel = (function () {
-    function Vessel() {
-    }
-    Vessel.prototype.get = function (module) {
-        return window.$App.container.get(module);
-    };
-    return Vessel;
-}());
-
-/**
- * BaseModel class
- */
-var Model = (function (_super) {
-    __extends(Model, _super);
-    function Model() {
-        var _this = _super.call(this) || this;
-        _this._createProxy();
-        return _this;
-    }
-    /**
-     * Provides a way to set multiple
-     * attributes at once.
-     *
-     * @param attrs
-     */
-    // TODO - Validation within set
-    Model.prototype.set = function (attrs) {
-        for (var attr in attrs) {
-            this.attr[attr] = attrs[attr];
-        }
-    };
-    /**
-     * Instances the attribute proxy, it adds each
-     * attribute defined in the model with the
-     * 'attr' decorator to the proxy.
-     * @private
-     */
-    Model.prototype._createProxy = function () {
-        if (isArrayEmpty(this.__metadata__))
-            throw TypeError("Attempt to create a proxy" +
-                " with no metadata.");
-        this.attr = new AttribProxy();
-        for (var _i = 0, _a = this.__metadata__; _i < _a.length; _i++) {
-            var attrName = _a[_i];
-            this.attr.addAttribute(attrName);
-        }
-    };
-    /**
-     * Whenever a validation takes place, this
-     * function will be invoked. All built-in
-     * general validations will be checked here.
-     *
-     * This function is responsible for return
-     * the results of the custom defined
-     * validationFn.
-     *
-     * @param value
-     * @param validationFn
-     * @returns boolean
-     * @private
-     */
-    Model.prototype._validate = function (value, validationFn) {
-        return validationFn(value);
-    };
-    Model.prototype._getClassName = function () {
-        return this.constructor.name;
-    };
-    return Model;
-}(Vessel));
-// Since decorators are executed at runtime
-// and __metadata__ is an array which is used
-// by the @attr decorator, __metadata__ needs
-// to be declared outside the class.
-// Otherwise, the push method that the decorator
-// uses will throw an error.
-Model.prototype.__metadata__ = [];
-Model.prototype.__dependencies__ = [];
-
-var View = (function (_super) {
-    __extends(View, _super);
-    function View() {
-        return _super !== null && _super.apply(this, arguments) || this;
-    }
-    return View;
-}(Vessel));
-View.prototype.__dependencies__ = [];
-
-var prefixAttr = 'attr';
-var Collection = (function (_super) {
-    __extends(Collection, _super);
-    function Collection() {
-        return _super.call(this) || this;
-    }
-    Collection.prototype.add = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
-        var collection = this.getCollection(), Model = this.getModel();
-        try {
-            collection.push(new (Model.bind.apply(Model, [void 0].concat(args)))());
-        }
-        catch (e) {
-            if (e instanceof TypeError) {
-                if (!isArray(collection)) {
-                    console.error("TypeError: The collection '" +
-                        this.__metadata__ + "' (" + typeof collection +
-                        ") must be an array.");
-                }
-            }
-        }
-    };
-    Collection.prototype.find = function (attrs) {
-        return filterOne(this.getCollection(), function (item) {
-            return matchPair(item[prefixAttr], attrs);
-        });
-    };
-    Collection.prototype.findAll = function (attrs) {
-        return filter(this.getCollection(), function (item) {
-            return matchPair(item[prefixAttr], attrs);
-        });
-    };
-    Collection.prototype.pull = function (attrName) {
-        return map(this.getCollection(), function (item) {
-            return item[prefixAttr][attrName];
-        });
-    };
-    Collection.prototype.sort = function () {
-    };
-    Collection.prototype.remove = function () {
-    };
-    Collection.prototype.removeById = function () {
-    };
-    Collection.prototype.update = function () {
-    };
-    Collection.prototype.save = function () {
-    };
-    Collection.prototype.fetch = function () {
-    };
-    Collection.prototype.willRetrieve = function () {
-        return this;
-    };
-    Collection.prototype.getCollection = function () {
-        return this[this.__metadata__];
-    };
-    return Collection;
-}(Vessel));
-Collection.prototype.__dependencies__ = [];
+// Base
+// Services
 
 /**
  * Decorator: @attr
  *
  * Adds the names of the custom attributes to
- * <ModelPrototype>.__metadata__. This will
+ * <ModelPrototype>.metadataKEY. This will
  * be used by the framework so it knows what
  * are the model attributes that it will need.
+ *
+ * Why Metadata Key?
+ *
+ * Since in javascript/ts decorators are executed
+ * at runtime, we cannot access to instances, we
+ * will be able to modify the prototype only.
+ * That's great until developers extends its
+ * classes (for example Model BasketBall extends
+ * Model Ball), that said we need classes to have
+ * its own metadata key which is accesible by
+ * its children but each class will modify only
+ * its own metadata key.
+ *
+ * Symbols and WeakMaps are great, but we need
+ * a key variable to store them so the instance can
+ * retrieve it later, and we have no access
+ * to the instances, so we couldn't assign a different
+ * symbol stored in the same variable in the prototype.
+ *
+ * We don't want private key properties between instances,
+ * but between prototypes.
  *
  * @param proto
  * @param attrName
@@ -376,15 +323,39 @@ Collection.prototype.__dependencies__ = [];
  * Decorator: @attr
  *
  * Adds the names of the custom attributes to
- * <ModelPrototype>.__metadata__. This will
+ * <ModelPrototype>.metadataKEY. This will
  * be used by the framework so it knows what
  * are the model attributes that it will need.
+ *
+ * Why Metadata Key?
+ *
+ * Since in javascript/ts decorators are executed
+ * at runtime, we cannot access to instances, we
+ * will be able to modify the prototype only.
+ * That's great until developers extends its
+ * classes (for example Model BasketBall extends
+ * Model Ball), that said we need classes to have
+ * its own metadata key which is accesible by
+ * its children but each class will modify only
+ * its own metadata key.
+ *
+ * Symbols and WeakMaps are great, but we need
+ * a key variable to store them so the instance can
+ * retrieve it later, and we have no access
+ * to the instances, so we couldn't assign a different
+ * symbol stored in the same variable in the prototype.
+ *
+ * We don't want private key properties between instances,
+ * but between prototypes.
  *
  * @param proto
  * @param attrName
  */ function attr(proto, attrName) {
-    console.error('soy el decorador del atributo!');
-    proto.__metadata__.push(attrName);
+    var className = proto._getClassName(), key = "__metadata__" + className + "__";
+    if (!proto.hasOwnProperty(key)) {
+        proto[key] = [];
+    }
+    proto[key].push(attrName);
 }
 
 /**
@@ -428,10 +399,31 @@ function validate(validationFn) {
  * Decorator: @collection
  *
  * Adds the name of the custom attribute to
- * <CollectionPrototype>.__metadata__. This
+ * <CollectionPrototype>.metadataKEY. This
  * will be used by the framework so it knows
  * what is the collection attribute which
  * will store the models.
+ *
+ * Why Metadata Key?
+ *
+ * Since in javascript/ts decorators are executed
+ * at runtime, we cannot access to instances, we
+ * will be able to modify the prototype only.
+ * That's great until developers extends its
+ * classes (for example Model BasketBall extends
+ * Model Ball), that said we need classes to have
+ * its own metadata key which is accesible by
+ * its children but each class will modify only
+ * its own metadata key.
+ *
+ * Symbols and WeakMaps are great, but we need
+ * a key variable to store them so the instance can
+ * retrieve it later, and we have no access
+ * to the instances, so we couldn't assign a different
+ * symbol stored in the same variable in the prototype.
+ *
+ * We don't want private key properties between instances,
+ * but between prototypes.
  *
  * @param proto
  * @param attrName
@@ -440,38 +432,46 @@ function validate(validationFn) {
  * Decorator: @collection
  *
  * Adds the name of the custom attribute to
- * <CollectionPrototype>.__metadata__. This
+ * <CollectionPrototype>.metadataKEY. This
  * will be used by the framework so it knows
  * what is the collection attribute which
  * will store the models.
  *
+ * Why Metadata Key?
+ *
+ * Since in javascript/ts decorators are executed
+ * at runtime, we cannot access to instances, we
+ * will be able to modify the prototype only.
+ * That's great until developers extends its
+ * classes (for example Model BasketBall extends
+ * Model Ball), that said we need classes to have
+ * its own metadata key which is accesible by
+ * its children but each class will modify only
+ * its own metadata key.
+ *
+ * Symbols and WeakMaps are great, but we need
+ * a key variable to store them so the instance can
+ * retrieve it later, and we have no access
+ * to the instances, so we couldn't assign a different
+ * symbol stored in the same variable in the prototype.
+ *
+ * We don't want private key properties between instances,
+ * but between prototypes.
+ *
  * @param proto
  * @param attrName
  */ function collection(proto, attrName) {
-    proto.__metadata__ = attrName;
-}
-
-function get(moduleName) {
-    return function (proto, attrName) {
-        proto.__dependencies__.push({
-            attr: attrName,
-            module: moduleName
-        });
-    };
-}
-
-function model(proto) {
-    var x = proto;
-    console.log('Soy el decorador de la clase!', x);
+    var className = proto._getClassName(), key = "__metadata__" + className + "__";
+    if (!proto.hasOwnProperty(key)) {
+        proto[key] = '';
+    }
+    proto[key] = attrName;
 }
 
 var TodoModel = (function (_super) {
     __extends(TodoModel, _super);
     function TodoModel(author, body) {
-        var _this = _super.call(this) || this;
-        _this.setAuthor(author);
-        _this.setBody(body);
-        return _this;
+        return _super.call(this) || this;
     }
     TodoModel.prototype.getAuthor = function () {
         return this.attr.author;
@@ -486,7 +486,7 @@ var TodoModel = (function (_super) {
         this.attr.body = value;
     };
     return TodoModel;
-}(Model));
+}(Model$$1));
 __decorate([
     attr
 ], TodoModel.prototype, "author", void 0);
@@ -515,9 +515,6 @@ __decorate([
         return true;
     })
 ], TodoModel.prototype, "setBody", null);
-TodoModel = __decorate([
-    model
-], TodoModel);
 
 var TodoCollection = (function (_super) {
     __extends(TodoCollection, _super);
@@ -530,46 +527,39 @@ var TodoCollection = (function (_super) {
         return TodoModel;
     };
     return TodoCollection;
-}(Collection));
+}(Collection$$1));
 __decorate([
     collection
 ], TodoCollection.prototype, "todos", void 0);
 
-$App = new App().browserBoot();
-var Test = (function (_super) {
-    __extends(Test, _super);
-    function Test() {
-        return _super.call(this) || this;
+var TestCollection = (function (_super) {
+    __extends(TestCollection, _super);
+    function TestCollection() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.data = [];
+        return _this;
     }
-    Test.prototype.getModel = function () {
+    TestCollection.prototype.getModel = function () {
     };
-    return Test;
-}(Collection));
+    return TestCollection;
+}(Collection$$1));
 __decorate([
-    get('test2')
-], Test.prototype, "test2", void 0);
-var Test3 = (function (_super) {
-    __extends(Test3, _super);
-    function Test3() {
-        return _super.call(this) || this;
+    collection
+], TestCollection.prototype, "data", void 0);
+
+var TestModel = (function (_super) {
+    __extends(TestModel, _super);
+    function TestModel(name) {
+        return _super.call(this, 'test', 'tete') || this;
     }
-    Test3.prototype.getModel = function () {
-    };
-    return Test3;
-}(Collection));
+    return TestModel;
+}(TodoModel));
 __decorate([
-    get('test3')
-], Test3.prototype, "test", void 0);
-var Test2 = (function (_super) {
-    __extends(Test2, _super);
-    function Test2() {
-        return _super.call(this) || this;
-    }
-    return Test2;
-}(View));
-__decorate([
-    get('test')
-], Test2.prototype, "test", void 0);
+    attr
+], TestModel.prototype, "name", void 0);
+
+$App = new App$$1().browserBoot();
+/*
 $App.register({
     models: {
         'model.todo': TodoModel,
@@ -578,17 +568,14 @@ $App.register({
         'collection.todos': TodoCollection
     },
     views: {
-        'test2': Test2,
-        'test': Test,
-        'test3': Test3
     }
 });
+*/
 //app.x = new TodoModel('pe', 'body 1');
 //app.y = new TodoModel('alex', 'body 2');
 $App["collection"] = new TodoCollection();
 $App["collection"].add('pedro!', 'body 1');
-$App["collection"].add('javi!', 'body 2');
-$App["collection"].add('fran!', 'body 3');
-$App["collection"].add('jose!', 'body 4');
-$App["collection"].add('javier!', 'body 4');
+$App["collection2"] = new TestCollection();
+$App["model"] = new TodoModel('pedro', 'jejejej');
+$App["model2"] = new TestModel('nombree');
 //# sourceMappingURL=bundle.js.map

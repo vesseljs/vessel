@@ -1,8 +1,7 @@
 import { Model as BaseModel } from '@vessel/core';
-import { attr, validate, model } from '@vessel/common/decorators';
+import { attr, validate } from '@vessel/decorators';
 import { ModelInterface } from '@vessel/types';
 
-@model
 export class TodoModel extends BaseModel implements ModelInterface {
 
     @attr
@@ -16,8 +15,6 @@ export class TodoModel extends BaseModel implements ModelInterface {
 
     constructor(author, body ) {
         super();
-        this.setAuthor( author );
-        this.setBody( body );
     }
 
     getAuthor() {
