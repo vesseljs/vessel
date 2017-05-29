@@ -2,7 +2,7 @@ import { getKeys, each, findItem } from '@vessel/core';
 
 export class Container {
 
-    private modules = {}
+    private modules = {};
 
     private cache = new WeakMap();
 
@@ -11,13 +11,20 @@ export class Container {
         return this;
     }
 
-    public startModule(name) {
+    public get(name) {
         return this.resolveDependencies(name);
     }
 
     private resolveDependencies(name) {
-        let match = this.findModuleByName(name),
-            moduleType = match.type,
+        let match = this.findModuleByName(name);
+
+        if (!match) {
+            throw new TypeError("Attempt to get " +
+                "non-existent module: '" +
+                name +"'. Did you register it?");
+        }
+
+        let moduleType = match.type,
             constructor = match.constructor,
             key = "__dependencies__" + constructor.name + "__",
             dependencies = constructor.prototype[key],
@@ -25,12 +32,6 @@ export class Container {
                 name: name,
                 constructor: constructor
             };
-
-        if (!match) {
-            throw new TypeError("Attempt to get " +
-                "non-existent module: '" +
-                name +"'. Did you register it?");
-        }
 
         each(dependencies, function(item){
             this.inject(item.depName, item.attrName, [], null, topParent);

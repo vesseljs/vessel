@@ -1,5 +1,9 @@
 import { Container } from "../container";
 
-export function setupContainer(namespace ) {
-    return namespace.container = new Container();
+export class InjectorBoot {
+
+    public setup(namespace) {
+        return namespace.container = new Container();
+    }
+
 }

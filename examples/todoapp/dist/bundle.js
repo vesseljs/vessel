@@ -180,20 +180,21 @@ var Collection$$1 = (function () {
  * will inherit this class.
  */
 
-var App$$1 = (function () {
-    function App$$1() {
+var AppBase$$1 = (function () {
+    function AppBase$$1() {
+        this.browserBoot();
     }
-    App$$1.prototype.browserBoot = function () {
+    AppBase$$1.prototype.browserBoot = function () {
         this.detectBrowserFeatures();
         return this;
     };
-    App$$1.prototype.detectBrowserFeatures = function () {
+    AppBase$$1.prototype.detectBrowserFeatures = function () {
         this.can = {
             WeakMap: isSupported(window.WeakMap)
         };
         return this;
     };
-    return App$$1;
+    return AppBase$$1;
 }());
 
 function isSupported(feature) {
@@ -288,9 +289,6 @@ function filterOne(arr, fn, context) {
     return false;
 }
 
-// Base
-// Services
-
 var Container = (function () {
     function Container() {
         this.modules = {};
@@ -300,19 +298,20 @@ var Container = (function () {
         this.modules = opts;
         return this;
     };
-    Container.prototype.startModule = function (name) {
+    Container.prototype.get = function (name) {
         return this.resolveDependencies(name);
     };
     Container.prototype.resolveDependencies = function (name) {
-        var match = this.findModuleByName(name), moduleType = match.type, constructor = match.constructor, key = "__dependencies__" + constructor.name + "__", dependencies = constructor.prototype[key], topParent = {
-            name: name,
-            constructor: constructor
-        };
+        var match = this.findModuleByName(name);
         if (!match) {
             throw new TypeError("Attempt to get " +
                 "non-existent module: '" +
                 name + "'. Did you register it?");
         }
+        var moduleType = match.type, constructor = match.constructor, key = "__dependencies__" + constructor.name + "__", dependencies = constructor.prototype[key], topParent = {
+            name: name,
+            constructor: constructor
+        };
         each(dependencies, function (item) {
             this.inject(item.depName, item.attrName, [], null, topParent);
         }, this);
@@ -352,21 +351,18 @@ var Container = (function () {
         // Inject the dependency to the parent prototype.
         return constructor.prototype[attrName] = this.loadDependency(depType, depName);
     };
-    // Module is requested by get() as dependency
     Container.prototype.loadDependency = function (type, name) {
         var constructor = this.modules[type][name];
         if (type !== 'models')
             return this.loadModule(constructor);
         return constructor;
     };
-    // Module is requested by startModule()
     Container.prototype.loadModule = function (constructor) {
         var cache = this.cache;
         if (!cache.has(constructor))
             cache.set(constructor, new constructor());
         return cache.get(constructor);
     };
-    // Factorizar findModule
     Container.prototype.findModuleByName = function (queryName) {
         var i, moduleType, module, modules = this.modules, keys = getKeys(modules), len = keys.length;
         for (i = 0; i < len; i++) {
@@ -387,9 +383,14 @@ var Container = (function () {
     return Container;
 }());
 
-function setupContainer(namespace) {
-    return namespace.container = new Container();
-}
+var InjectorBoot = (function () {
+    function InjectorBoot() {
+    }
+    InjectorBoot.prototype.setup = function (namespace) {
+        return namespace.container = new Container();
+    };
+    return InjectorBoot;
+}());
 
 /**
  * Decorator: @get(moduleName)
@@ -407,8 +408,8 @@ function setupContainer(namespace) {
  * at runtime, we cannot access to instances, we
  * will be able to modify the prototype only.
  * That's great until developers extends its
- * classes (for example Model BasketBall extends
- * Model Ball), that said we need classes to have
+ * classes (for example model BasketBall extends
+ * model Ball), that said we need classes to have
  * its own metadata key which is accesible by
  * its children but each class will modify only
  * its own metadata key.
@@ -441,8 +442,8 @@ function setupContainer(namespace) {
  * at runtime, we cannot access to instances, we
  * will be able to modify the prototype only.
  * That's great until developers extends its
- * classes (for example Model BasketBall extends
- * Model Ball), that said we need classes to have
+ * classes (for example model BasketBall extends
+ * model Ball), that said we need classes to have
  * its own metadata key which is accesible by
  * its children but each class will modify only
  * its own metadata key.
@@ -473,6 +474,39 @@ function setupContainer(namespace) {
 
 // Boot
 
+var Kernel$$1 = (function () {
+    function Kernel$$1(app) {
+        this.app = app;
+        this.init();
+    }
+    Kernel$$1.prototype.registerPackages = function () {
+        return [
+            new InjectorBoot()
+        ];
+    };
+    Kernel$$1.prototype.registerDependencies = function () {
+        var registrations = this.app.register();
+        if (!this.app.container) {
+            throw new Error("Cannot register dependencies without " +
+                "the injector package.");
+        }
+        this.app.container.register(registrations);
+    };
+    Kernel$$1.prototype.bootPackages = function () {
+        var namespace = this.app, bootPackages = this.registerPackages();
+        each(bootPackages, function (pkg) {
+            pkg.setup(namespace);
+        });
+    };
+    Kernel$$1.prototype.init = function () {
+        this.bootPackages();
+        this.registerDependencies();
+    };
+    return Kernel$$1;
+}());
+
+// Base
+
 /**
  * Decorator: @attr
  *
@@ -487,8 +521,8 @@ function setupContainer(namespace) {
  * at runtime, we cannot access to instances, we
  * will be able to modify the prototype only.
  * That's great until developers extends its
- * classes (for example Model BasketBall extends
- * Model Ball), that said we need classes to have
+ * classes (for example model BasketBall extends
+ * model Ball), that said we need classes to have
  * its own metadata key which is accesible by
  * its children but each class will modify only
  * its own metadata key.
@@ -519,8 +553,8 @@ function setupContainer(namespace) {
  * at runtime, we cannot access to instances, we
  * will be able to modify the prototype only.
  * That's great until developers extends its
- * classes (for example Model BasketBall extends
- * Model Ball), that said we need classes to have
+ * classes (for example model BasketBall extends
+ * model Ball), that said we need classes to have
  * its own metadata key which is accesible by
  * its children but each class will modify only
  * its own metadata key.
@@ -596,8 +630,8 @@ function validate(validationFn) {
  * at runtime, we cannot access to instances, we
  * will be able to modify the prototype only.
  * That's great until developers extends its
- * classes (for example Model BasketBall extends
- * Model Ball), that said we need classes to have
+ * classes (for example model BasketBall extends
+ * model Ball), that said we need classes to have
  * its own metadata key which is accesible by
  * its children but each class will modify only
  * its own metadata key.
@@ -629,8 +663,8 @@ function validate(validationFn) {
  * at runtime, we cannot access to instances, we
  * will be able to modify the prototype only.
  * That's great until developers extends its
- * classes (for example Model BasketBall extends
- * Model Ball), that said we need classes to have
+ * classes (for example model BasketBall extends
+ * model Ball), that said we need classes to have
  * its own metadata key which is accesible by
  * its children but each class will modify only
  * its own metadata key.
@@ -652,6 +686,15 @@ function validate(validationFn) {
         proto[key] = '';
     }
     proto[key] = attrName;
+}
+
+function setGlobals(app) {
+    window[app.getGlobalName()] = app;
+}
+function bootable(constructor) {
+    var app = new constructor();
+    new Kernel$$1(app);
+    setGlobals(app);
 }
 
 var TodoModel = (function (_super) {
@@ -721,8 +764,7 @@ __decorate([
     get('model.todo')
 ], TodoCollection.prototype, "model", void 0);
 
-$App = new App$$1().browserBoot();
-setupContainer($App).register({
+var registrations = {
     models: {
         'model.todo': TodoModel,
     },
@@ -730,17 +772,23 @@ setupContainer($App).register({
         'collection.todos': TodoCollection
     },
     views: {}
-});
-var x = $App.container.startModule('collection.todos');
-//app.x = new TodoModel('pe', 'body 1');
-//app.y = new TodoModel('alex', 'body 2');
-/*x
-$App["collection"] = new TodoCollection();
-$App["collection"].add('pedro!', 'body 1');
+};
 
-$App["collection2"] = new TestCollection();
-
-$App["model"] = new TodoModel('pedro', 'jejejej');
-$App["model2"] = new TestModel('nombree');
-*/
+var App = (function (_super) {
+    __extends(App, _super);
+    function App() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    App.prototype.register = function () {
+        return registrations;
+    };
+    App.prototype.getGlobalName = function () {
+        return '$App';
+    };
+    return App;
+}(AppBase$$1));
+App = __decorate([
+    bootable
+], App);
+// var x = $App.container.startModule('collection.todos');
 //# sourceMappingURL=bundle.js.map
