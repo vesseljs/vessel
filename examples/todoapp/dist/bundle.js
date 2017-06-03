@@ -123,13 +123,30 @@ var Container = (function () {
         modules["@"][name] = module;
         return this;
     };
+    /**
+     * Gets a given module name.
+     */
     Container.prototype.get = function (name) {
         return this.resolveDependencies(name);
     };
+    /**
+     * Gets the dependencies of a given className.
+     *
+     * At this time, metadataManager cannot be loaded by
+     * container.get(). That is, because the container.get()
+     * of the injector needs the MetadataManager to get the
+     * dependencies, so we manually load the dependency
+     * @metadata_manager (which is already registered
+     * within ContainerLoader) avoiding an unkind infinite loop :)
+     */
     Container.prototype.getDependencies = function (className) {
         var metadataManager = this.loadDependency('@', '@metadata_manager');
         return metadataManager.getDependencies(className);
     };
+    /**
+     * Resolves dependencies for a given module, recursively
+     * injecting its dependencies.
+     */
     Container.prototype.resolveDependencies = function (name) {
         var match = this.findModuleByName(name);
         if (!match) {
@@ -139,7 +156,8 @@ var Container = (function () {
         }
         var moduleType = match.type, constructor = match.constructor, dependencies = this.getDependencies(constructor.name), topParent = {
             name: name,
-            constructor: constructor
+            constructor: constructor,
+            type: moduleType
         };
         each(dependencies, function (item) {
             this.inject(item.depName, item.attrName, [], null, topParent);
@@ -172,7 +190,8 @@ var Container = (function () {
         if (parents.length === 1) {
             // Inject the very first parent dependency
             // to the module prototype.
-            return topParent.constructor.prototype[attrName] = this.loadDependency(depType, depName);
+            var topParentInstance = this.loadDependency(topParent.type, topParent.name), topDependencyInstance = this.loadDependency(depType, depName);
+            return topParentInstance[attrName] = topDependencyInstance;
         }
         // Children dependencies enter here.
         parents.pop();
@@ -181,9 +200,14 @@ var Container = (function () {
     };
     Container.prototype.loadDependency = function (type, name) {
         var constructor = this.modules[type][name];
-        if (type !== 'models')
-            return this.loadModule(constructor);
-        return constructor;
+        if (type === 'models') {
+            throw new TypeError("Attempt to inject as dependency, or get with " +
+                "container.get(), the model '" + name + "'. Models cannot be injected as " +
+                "they will may be instantiated more than once so dependency injection " +
+                "would not make sense. If you are trying to get a model class just " +
+                "import it.");
+        }
+        return this.loadModule(constructor);
     };
     Container.prototype.loadModule = function (constructor) {
         var cache = this.cache;
@@ -752,6 +776,7 @@ var TodoCollection = (function (_super) {
     function TodoCollection() {
         var _this = _super !== null && _super.apply(this, arguments) || this;
         _this.todos = [];
+        _this.model = TodoModel;
         return _this;
     }
     return TodoCollection;
@@ -760,8 +785,8 @@ __decorate([
     collection
 ], TodoCollection.prototype, "todos", void 0);
 __decorate([
-    get('model.todo')
-], TodoCollection.prototype, "model", void 0);
+    get('@metadata_manager')
+], TodoCollection.prototype, "metadataManager", void 0);
 
 var modules = {
     models: {

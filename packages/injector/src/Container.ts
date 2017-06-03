@@ -1,4 +1,4 @@
-import { Vessel, getKeys, each, findItem, merge } from '@vessel/core';
+import { getKeys, each, findItem, merge } from '@vessel/core';
 
 export class Container {
 
@@ -68,7 +68,8 @@ export class Container {
             dependencies = this.getDependencies(constructor.name),
             topParent = {
                 name: name,
-                constructor: constructor
+                constructor: constructor,
+                type: moduleType
             };
 
         each(dependencies, function(item){
@@ -116,7 +117,9 @@ export class Container {
         if (parents.length === 1) {
             // Inject the very first parent dependency
             // to the module prototype.
-            return topParent.constructor.prototype[attrName] = this.loadDependency(depType, depName);
+            let topParentInstance = this.loadDependency(topParent.type, topParent.name),
+                topDependencyInstance = this.loadDependency(depType, depName);
+            return topParentInstance[attrName] = topDependencyInstance;
         }
 
         // Children dependencies enter here.
@@ -129,10 +132,15 @@ export class Container {
     private loadDependency(type, name) {
         let constructor = this.modules[type][name];
 
-        if (type !== 'models')
-            return this.loadModule(constructor);
+        if (type === 'models') {
+            throw new TypeError("Attempt to inject as dependency, or get with " +
+                "container.get(), the model '"+name+"'. Models cannot be injected as " +
+                "they will may be instantiated more than once so dependency injection " +
+                "would not make sense. If you are trying to get a model class just " +
+                "import it.");
+        }
 
-        return constructor;
+        return this.loadModule(constructor);
     }
 
     private loadModule(constructor) {
