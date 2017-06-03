@@ -167,15 +167,13 @@ var Container = (function () {
     Container.prototype.inject = function (depName, attrName, parents, constructor, topParent) {
         if (parents === void 0) { parents = []; }
         if (constructor === void 0) { constructor = null; }
-        var depType, depDependencies, depConstructor, match = this.findModuleByName(depName);
+        var match = this.findModuleByName(depName);
         if (!match) {
             throw new TypeError("Attempt to inject " +
                 "non-existent dependency: '" +
                 depName + "'. Did you register it?");
         }
-        depType = match.type;
-        depConstructor = match.constructor;
-        depDependencies = this.getDependencies(depConstructor.name);
+        var depType = match.type, depConstructor = match.constructor, depDependencies = this.getDependencies(depConstructor.name);
         if (this.isCircular(depName, parents, topParent)) {
             throw new RangeError("Circular dependency detected: " +
                 "module injection was impossible. Attempting to " +
@@ -196,7 +194,8 @@ var Container = (function () {
         // Children dependencies enter here.
         parents.pop();
         // Inject the dependency to the parent prototype.
-        return constructor.prototype[attrName] = this.loadDependency(depType, depName);
+        var topDepInstance = this.loadModule(constructor), depInstance = this.loadDependency(depType, depName);
+        return topDepInstance[attrName] = depInstance;
     };
     Container.prototype.loadDependency = function (type, name) {
         var constructor = this.modules[type][name];
@@ -785,15 +784,50 @@ __decorate([
     collection
 ], TodoCollection.prototype, "todos", void 0);
 __decorate([
-    get('@metadata_manager')
-], TodoCollection.prototype, "metadataManager", void 0);
+    get('collection.test')
+], TodoCollection.prototype, "testCollection", void 0);
+
+var ThirdCollection = (function (_super) {
+    __extends(ThirdCollection, _super);
+    function ThirdCollection() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    return ThirdCollection;
+}(Collection$$1));
+__decorate([
+    get('collection.fourth')
+], ThirdCollection.prototype, "fourthCollection", void 0);
+
+var TestCollection = (function (_super) {
+    __extends(TestCollection, _super);
+    function TestCollection() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    return TestCollection;
+}(Collection$$1));
+__decorate([
+    get('collection.third')
+], TestCollection.prototype, "thirdCollection", void 0);
+
+var FourthCollection = (function (_super) {
+    __extends(FourthCollection, _super);
+    function FourthCollection() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.test = "test";
+        return _this;
+    }
+    return FourthCollection;
+}(Collection$$1));
 
 var modules = {
     models: {
         'model.todo': TodoModel,
     },
     collections: {
-        'collection.todos': TodoCollection
+        'collection.todos': TodoCollection,
+        'collection.test': TestCollection,
+        'collection.third': ThirdCollection,
+        'collection.fourth': FourthCollection
     },
     views: {}
 };

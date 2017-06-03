@@ -6,14 +6,8 @@ import { get } from '@vessel/injector';
 import { TodoModel } from '../model/TodoModel';
 
 
-export class TodoCollection extends BaseCollection {
+export class ThirdCollection extends BaseCollection {
 
-    @collection
-    public todos = [];
-
-    public model = TodoModel;
-
-    @get('collection.test')
-    public testCollection;
-
+    @get('collection.fourth')
+    public fourthCollection;
 }

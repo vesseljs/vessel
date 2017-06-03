@@ -1,10 +1,10 @@
 import { Collection as BaseCollection } from '@vessel/core';
 
+import { get } from '@vessel/injector';
+
 export class TestCollection extends BaseCollection {
 
-    public data = [];
+    @get('collection.third')
+    public thirdCollection;
 
-    getModel() {
-
-    }
 }

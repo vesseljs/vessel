@@ -80,10 +80,7 @@ export class Container {
     }
 
     private inject(depName, attrName, parents=[], constructor=null, topParent) {
-        let depType,
-            depDependencies,
-            depConstructor,
-            match = this.findModuleByName(depName);
+        let match = this.findModuleByName(depName);
 
         if (!match) {
             throw new TypeError("Attempt to inject " +
@@ -91,9 +88,9 @@ export class Container {
                 depName +"'. Did you register it?");
         }
 
-        depType = match.type;
-        depConstructor = match.constructor;
-        depDependencies = this.getDependencies(depConstructor.name);
+        let depType = match.type,
+            depConstructor = match.constructor,
+            depDependencies = this.getDependencies(depConstructor.name);
 
         if (this.isCircular(depName, parents, topParent)) {
             throw new RangeError("Circular dependency detected: "+
@@ -126,7 +123,9 @@ export class Container {
 
         parents.pop();
         // Inject the dependency to the parent prototype.
-        return constructor.prototype[attrName] = this.loadDependency(depType, depName);
+            let topDepInstance = this.loadModule(constructor),
+                depInstance = this.loadDependency(depType, depName);
+        return topDepInstance[attrName] = depInstance;
     }
 
     private loadDependency(type, name) {
