@@ -32,7 +32,7 @@ export function validate(validationFn) {
             if ( this._validate(value, validationFn) ) {
                 boundFn.call(this, value);
             }
-        }
+        };
         return descriptor;
     }
 }

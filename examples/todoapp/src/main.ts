@@ -1,14 +1,19 @@
-import { registrations } from './config/register';
-import { AppBase } from '@vessel/core';
+import { modules } from './config/modules';
+import { BaseApp } from '@vessel/core';
 import { bootable } from '@vessel/decorators';
 
 
 @bootable
-class App extends AppBase {
+class App extends BaseApp {
 
-    public register() {
-        return registrations;
+    public registerModules() {
+        return modules;
 
+    }
+
+    public registerPackages() {
+        return [
+        ];
     }
 
     public getGlobalName() {
@@ -16,4 +21,3 @@ class App extends AppBase {
     }
 
 }
-

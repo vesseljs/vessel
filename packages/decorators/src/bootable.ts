@@ -1,11 +1,6 @@
 import { Kernel } from '@vessel/core';
 
-function setGlobals(app) {
-    window[app.getGlobalName()] = app;
-}
-
-export function bootable(constructor) {
+export function bootable(constructor: any) {
     const app = new constructor();
-    new Kernel(app);
-    setGlobals(app);
+    new Kernel(app).boot();
 }

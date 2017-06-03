@@ -13,11 +13,6 @@ export class TodoModel extends BaseModel implements ModelInterface {
     @attr
     public date;
 
-    constructor(author, body ) {
-        super();
-        this.setAuthor( author );
-        this.setBody( body );
-    }
 
     getAuthor() {
         return this.attr.author;
@@ -42,7 +37,7 @@ export class TodoModel extends BaseModel implements ModelInterface {
     }
 
     @validate(
-        function(value) {
+        function validateBody(value) {
             if (!(value.length >= 0 && value.length <= 120) ) {
                 throw TypeError("Body length must be less " +
                     "than 120 characters and must not be empty.");

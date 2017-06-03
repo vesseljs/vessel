@@ -1,40 +1,20 @@
+import { Vessel } from '@vessel/core';
+
 /**
  * Decorator: @attr
  *
- * Adds the names of the custom attributes to
- * <ModelPrototype>.metadataKEY. This will
- * be used by the framework so it knows what
- * are the model attributes that it will need.
+ * Adds the names of the custom model attributes to
+ * the metadata manager.
  *
- * Why Metadata Key?
- *
- * Since in javascript/ts decorators are executed
- * at runtime, we cannot access to instances, we
- * will be able to modify the prototype only.
- * That's great until developers extends its
- * classes (for example model BasketBall extends
- * model Ball), that said we need classes to have
- * its own metadata key which is accesible by
- * its children but each class will modify only
- * its own metadata key.
- *
- * Symbols and WeakMaps are great, but we need
- * a key variable to store them so the instance can
- * retrieve it later, and we have no access
- * to the instances, so we couldn't assign a different
- * symbol stored in the same variable in the prototype.
- *
- * We don't want private key properties between instances,
- * but between prototypes.
+ * This will be used by the framework so it knows what
+ * are the model attributes.
  *
  * @param proto
  * @param attrName
  */
 export function attr(proto, attrName) {
-    let className = proto._getClassName(),
-        key = "__metadata__" + className + "__";
-    if (!proto.hasOwnProperty(key)) {
-        proto[key] = [];
-    }
-    proto[key].push(attrName);
+    let metadataManager = Vessel.prototype.container.get('@metadata_manager'),
+        className = proto.getClassName();
+
+    metadataManager.setAttribute(className, attrName);
 }

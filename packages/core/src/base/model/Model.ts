@@ -1,11 +1,11 @@
-import { AttribProxy } from './proxy';
-import { isArrayEmpty } from '@vessel/core';
+import { AttribProxy } from './Proxy';
+import { Vessel, isArrayEmpty, each, toInitialUpperCase } from '@vessel/core';
 import { ModelInterface } from '@vessel/types/definitions';
 
 /**
  * BaseModel class
  */
-export class Model implements ModelInterface {
+export class Model extends Vessel implements ModelInterface {
 
     /**
      * Stores the attribute proxy.
@@ -13,6 +13,7 @@ export class Model implements ModelInterface {
     protected attr: any;
 
     public constructor() {
+        super();
         this._createProxy();
     }
 
@@ -22,11 +23,12 @@ export class Model implements ModelInterface {
      *
      * @param attrs
      */
-    // TODO - Validation within set
     public set( attrs ) {
-        for (let attr in attrs) {
-            this.attr[attr] = attrs[attr];
-        }
+        each(attrs, function(attrName, value){
+            let boundFn = this['set' + toInitialUpperCase(attrName)];
+            boundFn.call(this, value);
+        }, this);
+        return this;
     }
 
     /**
@@ -36,15 +38,21 @@ export class Model implements ModelInterface {
      * @private
      */
     protected _createProxy() {
-        let metadataKey = this._getMetadataKey();
-        if ( isArrayEmpty(metadataKey) )
+        let attrs,
+            metadaManager = this.get('@metadata_manager');
+
+        attrs = metadaManager.getAttributes(this.getClassName());
+
+        if ( isArrayEmpty(attrs) ) {
             throw TypeError("Attempt to create a proxy" +
                 " with no metadata.");
+        }
 
         this.attr = new AttribProxy();
-        for (let attrName of metadataKey) {
+
+        each(attrs, function(attrName) {
             this.attr.addAttribute(attrName);
-        }
+        }, this);
     }
 
     /**
@@ -65,12 +73,12 @@ export class Model implements ModelInterface {
         return validationFn(value);
     }
 
-    private _getMetadataKey() {
-        return "__metadata__" + this._getClassName() + "__";
+    public save() {
+
     }
 
-    private _getClassName(): string {
-        return this.constructor.name;
+    public fetch() {
+
     }
 
 }

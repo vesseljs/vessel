@@ -1,24 +1,23 @@
-import { isArray, filterOne, filter, matchPair, map } from '@vessel/core';
+import { Vessel, isArray, filterOne, filter, matchPair, map } from '@vessel/core';
 import { ModelInterface } from '@vessel/types/definitions';
 
 let prefixAttr = 'attr';
 
-export abstract class Collection {
+export abstract class Collection extends Vessel {
 
     public collection: ModelInterface[];
     public model;
 
     public add(...args) {
         let collection = this.getCollection(),
-            Model = this.model,
-            metadataKey = this._getMetadataKey();
+            Model = this.model;
         try {
             collection.push(new Model(...args));
         } catch(e) {
             if (e instanceof TypeError) {
                 if ( !isArray(collection) ) {
                     console.error("TypeError: The collection '" +
-                        metadataKey + "' (" + typeof collection +
+                        collection+ "' (" + typeof collection +
                         ") must be an array.");
                 }
             }
@@ -55,10 +54,6 @@ export abstract class Collection {
 
     }
 
-    public update() {
-
-    }
-
     public save() {
 
     }
@@ -71,18 +66,13 @@ export abstract class Collection {
         return this;
     }
 
-    private getCollection() {
-        let metadataKey = this._getMetadataKey();
-        return this[this[metadataKey]];
-    }
+    protected getCollection() {
+        let name,
+            metadataManager = this.get('@metadata_manager');
 
-    private _getMetadataKey() {
-        return "__metadata__" + this._getClassName() + "__";
-    }
+         name = metadataManager.getCollection(this.getClassName());
 
-    private _getClassName(): string {
-        return this.constructor.name;
+        return this[name];
     }
-
 
 }

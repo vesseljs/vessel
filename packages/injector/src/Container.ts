@@ -1,4 +1,4 @@
-import { getKeys, each, findItem } from '@vessel/core';
+import { Vessel, getKeys, each, findItem, merge } from '@vessel/core';
 
 export class Container {
 
@@ -7,14 +7,53 @@ export class Container {
     private cache = new WeakMap();
 
     public register(opts) {
-        this.modules = opts;
+        merge(this.modules, opts);
         return this;
     }
 
+    public registerSingleModule(name, module) {
+
+        if (!module) {
+            throw TypeError("Cannot registerSingleModule(name, module). 'module' was " + module);
+        }
+
+        let modules = this.modules;
+
+        if (!modules.hasOwnProperty("@")) {
+            modules["@"] = {}
+        }
+
+        modules["@"][name] = module;
+
+        return this;
+    }
+
+    /**
+     * Gets a given module name.
+     */
     public get(name) {
         return this.resolveDependencies(name);
     }
 
+    /**
+     * Gets the dependencies of a given className.
+     *
+     * At this time, metadataManager cannot be loaded by
+     * container.get(). That is, because the container.get()
+     * of the injector needs the MetadataManager to get the
+     * dependencies, so we manually load the dependency
+     * @metadata_manager (which is already registered
+     * within ContainerLoader) avoiding an unkind infinite loop :)
+     */
+    public getDependencies(className) {
+        let metadataManager = this.loadDependency('@', '@metadata_manager');
+        return metadataManager.getDependencies(className);
+    }
+
+    /**
+     * Resolves dependencies for a given module, recursively
+     * injecting its dependencies.
+     */
     private resolveDependencies(name) {
         let match = this.findModuleByName(name);
 
@@ -26,8 +65,7 @@ export class Container {
 
         let moduleType = match.type,
             constructor = match.constructor,
-            key = "__dependencies__" + constructor.name + "__",
-            dependencies = constructor.prototype[key],
+            dependencies = this.getDependencies(constructor.name),
             topParent = {
                 name: name,
                 constructor: constructor
@@ -41,8 +79,7 @@ export class Container {
     }
 
     private inject(depName, attrName, parents=[], constructor=null, topParent) {
-        let key,
-            depType,
+        let depType,
             depDependencies,
             depConstructor,
             match = this.findModuleByName(depName);
@@ -55,8 +92,7 @@ export class Container {
 
         depType = match.type;
         depConstructor = match.constructor;
-        key = "__dependencies__" + depConstructor.name + "__";
-        depDependencies = depConstructor.prototype[key];
+        depDependencies = this.getDependencies(depConstructor.name);
 
         if (this.isCircular(depName, parents, topParent)) {
             throw new RangeError("Circular dependency detected: "+
@@ -118,7 +154,7 @@ export class Container {
         for (i = 0; i < len; i++) {
             moduleType = keys[i];
             module = modules[moduleType];
-            if (module.hasOwnProperty(queryName))
+            if (module && module.hasOwnProperty(queryName))
                 return {
                     type: moduleType,
                     name: queryName,

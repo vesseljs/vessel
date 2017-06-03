@@ -11,6 +11,319 @@ function __decorate(decorators, target, key, desc) {
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 }
 
+var Metadata = (function () {
+    function Metadata() {
+    }
+    return Metadata;
+}());
+Metadata.MODEL_ATTRIBUTES_KEY = 'attributes';
+Metadata.COLLECTION_ATTRIBUTE_KEY = 'collection';
+Metadata.DEPENDENCIES_KEY = 'dependencies';
+
+/**
+ * class MetadataManager.
+ *
+ * Provides a way to store/retrieve
+ * metadata info. about classes.
+ *
+ * e.g. Which attributes are being used
+ * by the model, what is the name of
+ * the attribute in the collection which
+ * is the model array or what are the
+ * dependencies of a class.
+ *
+ */
+var MetadataManager$$1 = (function () {
+    function MetadataManager$$1() {
+        /**
+         * Metadata container
+         * for the loaded classes.
+         */
+        this.cache = {};
+    }
+    MetadataManager$$1.prototype.getDependencies = function (className) {
+        return this.retrieve(className, Metadata.DEPENDENCIES_KEY);
+    };
+    MetadataManager$$1.prototype.setDependency = function (className, dep) {
+        this.createOrPush(className, Metadata.DEPENDENCIES_KEY, dep);
+        return this;
+    };
+    MetadataManager$$1.prototype.getAttributes = function (className) {
+        return this.retrieve(className, Metadata.MODEL_ATTRIBUTES_KEY);
+    };
+    MetadataManager$$1.prototype.setAttribute = function (className, attrName) {
+        this.createOrPush(className, Metadata.MODEL_ATTRIBUTES_KEY, attrName);
+        return this;
+    };
+    MetadataManager$$1.prototype.getCollection = function (className) {
+        return this.retrieve(className, Metadata.COLLECTION_ATTRIBUTE_KEY);
+    };
+    MetadataManager$$1.prototype.setCollection = function (className, attrName) {
+        this.loadClass(className)[Metadata.COLLECTION_ATTRIBUTE_KEY] = attrName;
+        return this;
+    };
+    /**
+     * Checks if a given
+     * className is
+     * cached.
+     */
+    MetadataManager$$1.prototype.has = function (className) {
+        return this.cache.hasOwnProperty(className);
+    };
+    /**
+     * Returns the class if it
+     * exists or creates and returns
+     * it if it doesn't.
+     */
+    MetadataManager$$1.prototype.loadClass = function (className) {
+        if (!this.has(className)) {
+            this.cache[className] = {};
+        }
+        return this.cache[className];
+    };
+    /**
+     * Retrieves the information
+     * of metadata if it was
+     * set before.
+     */
+    MetadataManager$$1.prototype.retrieve = function (className, key) {
+        if (!this.has(className)) {
+            return undefined;
+        }
+        return this.cache[className][key];
+    };
+    MetadataManager$$1.prototype.createOrPush = function (className, key, value) {
+        var cached = this.loadClass(className);
+        if (!cached.hasOwnProperty(key)) {
+            cached[key] = [];
+        }
+        cached[key].push(value);
+        return value;
+    };
+    return MetadataManager$$1;
+}());
+
+var Container = (function () {
+    function Container() {
+        this.modules = {};
+        this.cache = new WeakMap();
+    }
+    Container.prototype.register = function (opts) {
+        merge(this.modules, opts);
+        return this;
+    };
+    Container.prototype.registerSingleModule = function (name, module) {
+        if (!module) {
+            throw TypeError("Cannot registerSingleModule(name, module). 'module' was " + module);
+        }
+        var modules = this.modules;
+        if (!modules.hasOwnProperty("@")) {
+            modules["@"] = {};
+        }
+        modules["@"][name] = module;
+        return this;
+    };
+    Container.prototype.get = function (name) {
+        return this.resolveDependencies(name);
+    };
+    Container.prototype.getDependencies = function (className) {
+        var metadataManager = this.loadDependency('@', '@metadata_manager');
+        return metadataManager.getDependencies(className);
+    };
+    Container.prototype.resolveDependencies = function (name) {
+        var match = this.findModuleByName(name);
+        if (!match) {
+            throw new TypeError("Attempt to get " +
+                "non-existent module: '" +
+                name + "'. Did you register it?");
+        }
+        var moduleType = match.type, constructor = match.constructor, dependencies = this.getDependencies(constructor.name), topParent = {
+            name: name,
+            constructor: constructor
+        };
+        each(dependencies, function (item) {
+            this.inject(item.depName, item.attrName, [], null, topParent);
+        }, this);
+        return this.loadDependency(moduleType, name);
+    };
+    Container.prototype.inject = function (depName, attrName, parents, constructor, topParent) {
+        if (parents === void 0) { parents = []; }
+        if (constructor === void 0) { constructor = null; }
+        var depType, depDependencies, depConstructor, match = this.findModuleByName(depName);
+        if (!match) {
+            throw new TypeError("Attempt to inject " +
+                "non-existent dependency: '" +
+                depName + "'. Did you register it?");
+        }
+        depType = match.type;
+        depConstructor = match.constructor;
+        depDependencies = this.getDependencies(depConstructor.name);
+        if (this.isCircular(depName, parents, topParent)) {
+            throw new RangeError("Circular dependency detected: " +
+                "module injection was impossible. Attempting to " +
+                "inject '" + depName + "' which have tried to " +
+                "resolve a parent dependency.");
+        }
+        parents.push(depName);
+        each(depDependencies, function (item) {
+            this.inject(item.depName, item.attrName, parents, depConstructor, topParent);
+        }, this);
+        // Only the top-parent dependency enters here.
+        if (parents.length === 1) {
+            // Inject the very first parent dependency
+            // to the module prototype.
+            return topParent.constructor.prototype[attrName] = this.loadDependency(depType, depName);
+        }
+        // Children dependencies enter here.
+        parents.pop();
+        // Inject the dependency to the parent prototype.
+        return constructor.prototype[attrName] = this.loadDependency(depType, depName);
+    };
+    Container.prototype.loadDependency = function (type, name) {
+        var constructor = this.modules[type][name];
+        if (type !== 'models')
+            return this.loadModule(constructor);
+        return constructor;
+    };
+    Container.prototype.loadModule = function (constructor) {
+        var cache = this.cache;
+        if (!cache.has(constructor))
+            cache.set(constructor, new constructor());
+        return cache.get(constructor);
+    };
+    Container.prototype.findModuleByName = function (queryName) {
+        var i, moduleType, module, modules = this.modules, keys = getKeys(modules), len = keys.length;
+        for (i = 0; i < len; i++) {
+            moduleType = keys[i];
+            module = modules[moduleType];
+            if (module && module.hasOwnProperty(queryName))
+                return {
+                    type: moduleType,
+                    name: queryName,
+                    constructor: modules[moduleType][queryName]
+                };
+        }
+        return null;
+    };
+    Container.prototype.isCircular = function (depName, parents, topParent) {
+        return depName === topParent.name || findItem(parents, depName);
+    };
+    return Container;
+}());
+
+/**
+ * Decorator: @get(moduleName)
+ *
+ * Uses the @metadata_manager service
+ *
+ *
+ * @param depName
+ */
+/*
+export function get(depName) {
+    return function(proto, attrName) {
+        let className = proto.getClassName(),
+            key = "__dependencies__" + className + "__";
+        if (!proto.hasOwnProperty(key)) {
+            proto[key] = [];
+        }
+        proto[key].push({
+            attrName: attrName,
+            depName: depName
+        });
+    }
+}*/
+function get(depName) {
+    return function (proto, attrName) {
+        var metadataManager = Vessel$$1.prototype.container.get('@metadata_manager'), className = proto.getClassName();
+        metadataManager.setDependency(className, {
+            attrName: attrName,
+            depName: depName
+        });
+    };
+}
+
+// Boot
+
+var ContainerLoader$$1 = (function () {
+    function ContainerLoader$$1() {
+        this.boot();
+    }
+    ContainerLoader$$1.prototype.boot = function () {
+        return this.registerTo(new Container());
+    };
+    ContainerLoader$$1.prototype.registerTo = function (container) {
+        return container.registerSingleModule('@metadata_manager', MetadataManager$$1);
+    };
+    return ContainerLoader$$1;
+}());
+
+var Kernel$$1 = (function () {
+    function Kernel$$1(app) {
+        this.app = app;
+    }
+    Kernel$$1.prototype.boot = function () {
+        this.setGlobals();
+        this.init();
+    };
+    Kernel$$1.prototype.setGlobals = function () {
+        window[this.app.getGlobalName()] = this.app;
+    };
+    Kernel$$1.prototype.getContainer = function () {
+        return Vessel$$1.prototype.container;
+    };
+    Kernel$$1.prototype.setAppContainer = function (container) {
+        this.app.container = container;
+    };
+    Kernel$$1.prototype.registerDependencies = function (container) {
+        var registrations = this.app.registerModules();
+        container.register(registrations);
+        return this;
+    };
+    Kernel$$1.prototype.bootPackages = function () {
+        var bootPackages = this.app.registerPackages();
+        this.loadPackages([bootPackages]);
+    };
+    Kernel$$1.prototype.loadPackages = function (arr) {
+        each(arr, function (pkgs) {
+            each(pkgs, function (pkg) {
+                pkg.setup(this.app);
+            });
+        });
+        return this;
+    };
+    Kernel$$1.prototype.init = function () {
+        this.bootPackages();
+        var container = this.getContainer();
+        if (!container) {
+            throw new Error("Cannot register dependencies without " +
+                "the injector package.");
+        }
+        this.registerDependencies(container)
+            .setAppContainer(container);
+    };
+    return Kernel$$1;
+}());
+
+/**
+ * Vessel's Main class.
+ *
+ * Models, views, collections
+ * will inherit this class.
+ */
+var Vessel$$1 = (function () {
+    function Vessel$$1() {
+    }
+    Vessel$$1.prototype.getClassName = function () {
+        return this.constructor.name;
+    };
+    Vessel$$1.prototype.get = function (module) {
+        return this.container.get(module);
+    };
+    return Vessel$$1;
+}());
+Vessel$$1.prototype.container = new ContainerLoader$$1().boot();
+
 /**
  * Attribute proxy.
  *
@@ -48,9 +361,12 @@ var AttribProxy = (function () {
 /**
  * BaseModel class
  */
-var Model$$1 = (function () {
+var Model$$1 = (function (_super) {
+    __extends(Model$$1, _super);
     function Model$$1() {
-        this._createProxy();
+        var _this = _super.call(this) || this;
+        _this._createProxy();
+        return _this;
     }
     /**
      * Provides a way to set multiple
@@ -58,11 +374,12 @@ var Model$$1 = (function () {
      *
      * @param attrs
      */
-    // TODO - Validation within set
     Model$$1.prototype.set = function (attrs) {
-        for (var attr in attrs) {
-            this.attr[attr] = attrs[attr];
-        }
+        each(attrs, function (attrName, value) {
+            var boundFn = this['set' + toInitialUpperCase(attrName)];
+            boundFn.call(this, value);
+        }, this);
+        return this;
     };
     /**
      * Instances the attribute proxy, it adds each
@@ -71,15 +388,16 @@ var Model$$1 = (function () {
      * @private
      */
     Model$$1.prototype._createProxy = function () {
-        var metadataKey = this._getMetadataKey();
-        if (isArrayEmpty(metadataKey))
+        var attrs, metadaManager = this.get('@metadata_manager');
+        attrs = metadaManager.getAttributes(this.getClassName());
+        if (isArrayEmpty(attrs)) {
             throw TypeError("Attempt to create a proxy" +
                 " with no metadata.");
-        this.attr = new AttribProxy();
-        for (var _i = 0, metadataKey_1 = metadataKey; _i < metadataKey_1.length; _i++) {
-            var attrName = metadataKey_1[_i];
-            this.attr.addAttribute(attrName);
         }
+        this.attr = new AttribProxy();
+        each(attrs, function (attrName) {
+            this.attr.addAttribute(attrName);
+        }, this);
     };
     /**
      * Whenever a validation takes place, this
@@ -98,25 +416,33 @@ var Model$$1 = (function () {
     Model$$1.prototype._validate = function (value, validationFn) {
         return validationFn(value);
     };
-    Model$$1.prototype._getMetadataKey = function () {
-        return "__metadata__" + this._getClassName() + "__";
+    Model$$1.prototype.save = function () {
     };
-    Model$$1.prototype._getClassName = function () {
-        return this.constructor.name;
+    Model$$1.prototype.fetch = function () {
     };
     return Model$$1;
-}());
+}(Vessel$$1));
+
+var View$$1 = (function (_super) {
+    __extends(View$$1, _super);
+    function View$$1() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    return View$$1;
+}(Vessel$$1));
 
 var prefixAttr = 'attr';
-var Collection$$1 = (function () {
+var Collection$$1 = (function (_super) {
+    __extends(Collection$$1, _super);
     function Collection$$1() {
+        return _super !== null && _super.apply(this, arguments) || this;
     }
     Collection$$1.prototype.add = function () {
         var args = [];
         for (var _i = 0; _i < arguments.length; _i++) {
             args[_i] = arguments[_i];
         }
-        var collection = this.getCollection(), Model$$1 = this.model, metadataKey = this._getMetadataKey();
+        var collection = this.getCollection(), Model$$1 = this.model;
         try {
             collection.push(new (Model$$1.bind.apply(Model$$1, [void 0].concat(args)))());
         }
@@ -124,7 +450,7 @@ var Collection$$1 = (function () {
             if (e instanceof TypeError) {
                 if (!isArray(collection)) {
                     console.error("TypeError: The collection '" +
-                        metadataKey + "' (" + typeof collection +
+                        collection + "' (" + typeof collection +
                         ") must be an array.");
                 }
             }
@@ -151,8 +477,6 @@ var Collection$$1 = (function () {
     };
     Collection$$1.prototype.removeById = function () {
     };
-    Collection$$1.prototype.update = function () {
-    };
     Collection$$1.prototype.save = function () {
     };
     Collection$$1.prototype.fetch = function () {
@@ -161,40 +485,28 @@ var Collection$$1 = (function () {
         return this;
     };
     Collection$$1.prototype.getCollection = function () {
-        var metadataKey = this._getMetadataKey();
-        return this[this[metadataKey]];
-    };
-    Collection$$1.prototype._getMetadataKey = function () {
-        return "__metadata__" + this._getClassName() + "__";
-    };
-    Collection$$1.prototype._getClassName = function () {
-        return this.constructor.name;
+        var name, metadataManager = this.get('@metadata_manager');
+        name = metadataManager.getCollection(this.getClassName());
+        return this[name];
     };
     return Collection$$1;
-}());
+}(Vessel$$1));
 
-/**
- * Vessel's Main class.
- *
- * Models, views, collections
- * will inherit this class.
- */
-
-var AppBase$$1 = (function () {
-    function AppBase$$1() {
+var BaseApp$$1 = (function () {
+    function BaseApp$$1() {
         this.browserBoot();
     }
-    AppBase$$1.prototype.browserBoot = function () {
+    BaseApp$$1.prototype.browserBoot = function () {
         this.detectBrowserFeatures();
         return this;
     };
-    AppBase$$1.prototype.detectBrowserFeatures = function () {
+    BaseApp$$1.prototype.detectBrowserFeatures = function () {
         this.can = {
             WeakMap: isSupported(window.WeakMap)
         };
         return this;
     };
-    return AppBase$$1;
+    return BaseApp$$1;
 }());
 
 function isSupported(feature) {
@@ -219,6 +531,12 @@ function isFunction(fn) {
     if (typeof fn !== "function")
         return false;
     return true;
+}
+function isObject(exp) {
+    return typeof exp === "object";
+}
+function toInitialUpperCase(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
 }
 function defineProp(obj, prop, getter, setter) {
     var descriptor = {
@@ -288,294 +606,41 @@ function filterOne(arr, fn, context) {
     }
     return false;
 }
-
-var Container = (function () {
-    function Container() {
-        this.modules = {};
-        this.cache = new WeakMap();
+function merge(obj, obj2) {
+    var prop;
+    for (prop in obj2) {
+        try {
+            obj[prop] = isObject(obj2[prop]) ? merge(obj[prop], obj2[prop]) : obj2[prop];
+        }
+        catch (e) {
+            obj[prop] = obj2[prop];
+        }
     }
-    Container.prototype.register = function (opts) {
-        this.modules = opts;
-        return this;
-    };
-    Container.prototype.get = function (name) {
-        return this.resolveDependencies(name);
-    };
-    Container.prototype.resolveDependencies = function (name) {
-        var match = this.findModuleByName(name);
-        if (!match) {
-            throw new TypeError("Attempt to get " +
-                "non-existent module: '" +
-                name + "'. Did you register it?");
-        }
-        var moduleType = match.type, constructor = match.constructor, key = "__dependencies__" + constructor.name + "__", dependencies = constructor.prototype[key], topParent = {
-            name: name,
-            constructor: constructor
-        };
-        each(dependencies, function (item) {
-            this.inject(item.depName, item.attrName, [], null, topParent);
-        }, this);
-        return this.loadDependency(moduleType, name);
-    };
-    Container.prototype.inject = function (depName, attrName, parents, constructor, topParent) {
-        if (parents === void 0) { parents = []; }
-        if (constructor === void 0) { constructor = null; }
-        var key, depType, depDependencies, depConstructor, match = this.findModuleByName(depName);
-        if (!match) {
-            throw new TypeError("Attempt to inject " +
-                "non-existent dependency: '" +
-                depName + "'. Did you register it?");
-        }
-        depType = match.type;
-        depConstructor = match.constructor;
-        key = "__dependencies__" + depConstructor.name + "__";
-        depDependencies = depConstructor.prototype[key];
-        if (this.isCircular(depName, parents, topParent)) {
-            throw new RangeError("Circular dependency detected: " +
-                "module injection was impossible. Attempting to " +
-                "inject '" + depName + "' which have tried to " +
-                "resolve a parent dependency.");
-        }
-        parents.push(depName);
-        each(depDependencies, function (item) {
-            this.inject(item.depName, item.attrName, parents, depConstructor, topParent);
-        }, this);
-        // Only the top-parent dependency enters here.
-        if (parents.length === 1) {
-            // Inject the very first parent dependency
-            // to the module prototype.
-            return topParent.constructor.prototype[attrName] = this.loadDependency(depType, depName);
-        }
-        // Children dependencies enter here.
-        parents.pop();
-        // Inject the dependency to the parent prototype.
-        return constructor.prototype[attrName] = this.loadDependency(depType, depName);
-    };
-    Container.prototype.loadDependency = function (type, name) {
-        var constructor = this.modules[type][name];
-        if (type !== 'models')
-            return this.loadModule(constructor);
-        return constructor;
-    };
-    Container.prototype.loadModule = function (constructor) {
-        var cache = this.cache;
-        if (!cache.has(constructor))
-            cache.set(constructor, new constructor());
-        return cache.get(constructor);
-    };
-    Container.prototype.findModuleByName = function (queryName) {
-        var i, moduleType, module, modules = this.modules, keys = getKeys(modules), len = keys.length;
-        for (i = 0; i < len; i++) {
-            moduleType = keys[i];
-            module = modules[moduleType];
-            if (module.hasOwnProperty(queryName))
-                return {
-                    type: moduleType,
-                    name: queryName,
-                    constructor: modules[moduleType][queryName]
-                };
-        }
-        return null;
-    };
-    Container.prototype.isCircular = function (depName, parents, topParent) {
-        return depName === topParent.name || findItem(parents, depName);
-    };
-    return Container;
-}());
-
-var InjectorBoot = (function () {
-    function InjectorBoot() {
-    }
-    InjectorBoot.prototype.setup = function (namespace) {
-        return namespace.container = new Container();
-    };
-    return InjectorBoot;
-}());
-
-/**
- * Decorator: @get(moduleName)
- *
- * Adds the dependencies to the
- * <Prototype>.dependenciesKEY. This will
- * be used by the framework so it knows what
- * are the dependencies that it will need.
- * The resolved module will be injected into
- * the applied attribute.
- *
- * Why Dependency Key?
- *
- * Since in javascript/ts decorators are executed
- * at runtime, we cannot access to instances, we
- * will be able to modify the prototype only.
- * That's great until developers extends its
- * classes (for example model BasketBall extends
- * model Ball), that said we need classes to have
- * its own metadata key which is accesible by
- * its children but each class will modify only
- * its own metadata key.
- *
- * Symbols and WeakMaps are great, but we need
- * a key variable to store them so the instance can
- * retrieve it later, and we have no access
- * to the instances, so we couldn't assign a different
- * symbol stored in the same variable in the prototype.
- *
- * We don't want private key properties between instances,
- * but between prototypes.
- *
- * @param depName
- * @returns {(constructor:any, attrName:any, $depName:any)=>undefined}
- */
-/**
- * Decorator: @get(moduleName)
- *
- * Adds the dependencies to the
- * <Prototype>.dependenciesKEY. This will
- * be used by the framework so it knows what
- * are the dependencies that it will need.
- * The resolved module will be injected into
- * the applied attribute.
- *
- * Why Dependency Key?
- *
- * Since in javascript/ts decorators are executed
- * at runtime, we cannot access to instances, we
- * will be able to modify the prototype only.
- * That's great until developers extends its
- * classes (for example model BasketBall extends
- * model Ball), that said we need classes to have
- * its own metadata key which is accesible by
- * its children but each class will modify only
- * its own metadata key.
- *
- * Symbols and WeakMaps are great, but we need
- * a key variable to store them so the instance can
- * retrieve it later, and we have no access
- * to the instances, so we couldn't assign a different
- * symbol stored in the same variable in the prototype.
- *
- * We don't want private key properties between instances,
- * but between prototypes.
- *
- * @param depName
- * @returns {(constructor:any, attrName:any, $depName:any)=>undefined}
- */ function get(depName) {
-    return function (proto, attrName) {
-        var className = proto._getClassName(), key = "__dependencies__" + className + "__";
-        if (!proto.hasOwnProperty(key)) {
-            proto[key] = [];
-        }
-        proto[key].push({
-            attrName: attrName,
-            depName: depName
-        });
-    };
 }
 
-// Boot
-
-var Kernel$$1 = (function () {
-    function Kernel$$1(app) {
-        this.app = app;
-        this.init();
-    }
-    Kernel$$1.prototype.registerPackages = function () {
-        return [
-            new InjectorBoot()
-        ];
-    };
-    Kernel$$1.prototype.registerDependencies = function () {
-        var registrations = this.app.register();
-        if (!this.app.container) {
-            throw new Error("Cannot register dependencies without " +
-                "the injector package.");
-        }
-        this.app.container.register(registrations);
-    };
-    Kernel$$1.prototype.bootPackages = function () {
-        var namespace = this.app, bootPackages = this.registerPackages();
-        each(bootPackages, function (pkg) {
-            pkg.setup(namespace);
-        });
-    };
-    Kernel$$1.prototype.init = function () {
-        this.bootPackages();
-        this.registerDependencies();
-    };
-    return Kernel$$1;
-}());
-
 // Base
+// Services
+
+function bootable(constructor) {
+    var app = new constructor();
+    new Kernel$$1(app).boot();
+}
 
 /**
  * Decorator: @attr
  *
- * Adds the names of the custom attributes to
- * <ModelPrototype>.metadataKEY. This will
- * be used by the framework so it knows what
- * are the model attributes that it will need.
+ * Adds the names of the custom model attributes to
+ * the metadata manager.
  *
- * Why Metadata Key?
- *
- * Since in javascript/ts decorators are executed
- * at runtime, we cannot access to instances, we
- * will be able to modify the prototype only.
- * That's great until developers extends its
- * classes (for example model BasketBall extends
- * model Ball), that said we need classes to have
- * its own metadata key which is accesible by
- * its children but each class will modify only
- * its own metadata key.
- *
- * Symbols and WeakMaps are great, but we need
- * a key variable to store them so the instance can
- * retrieve it later, and we have no access
- * to the instances, so we couldn't assign a different
- * symbol stored in the same variable in the prototype.
- *
- * We don't want private key properties between instances,
- * but between prototypes.
+ * This will be used by the framework so it knows what
+ * are the model attributes.
  *
  * @param proto
  * @param attrName
  */
-/**
- * Decorator: @attr
- *
- * Adds the names of the custom attributes to
- * <ModelPrototype>.metadataKEY. This will
- * be used by the framework so it knows what
- * are the model attributes that it will need.
- *
- * Why Metadata Key?
- *
- * Since in javascript/ts decorators are executed
- * at runtime, we cannot access to instances, we
- * will be able to modify the prototype only.
- * That's great until developers extends its
- * classes (for example model BasketBall extends
- * model Ball), that said we need classes to have
- * its own metadata key which is accesible by
- * its children but each class will modify only
- * its own metadata key.
- *
- * Symbols and WeakMaps are great, but we need
- * a key variable to store them so the instance can
- * retrieve it later, and we have no access
- * to the instances, so we couldn't assign a different
- * symbol stored in the same variable in the prototype.
- *
- * We don't want private key properties between instances,
- * but between prototypes.
- *
- * @param proto
- * @param attrName
- */ function attr(proto, attrName) {
-    var className = proto._getClassName(), key = "__metadata__" + className + "__";
-    if (!proto.hasOwnProperty(key)) {
-        proto[key] = [];
-    }
-    proto[key].push(attrName);
+function attr(proto, attrName) {
+    var metadataManager = Vessel$$1.prototype.container.get('@metadata_manager'), className = proto.getClassName();
+    metadataManager.setAttribute(className, attrName);
 }
 
 /**
@@ -618,92 +683,26 @@ function validate(validationFn) {
 /**
  * Decorator: @collection
  *
- * Adds the name of the custom attribute to
- * <CollectionPrototype>.metadataKEY. This
- * will be used by the framework so it knows
- * what is the collection attribute which
- * will store the models.
+ * Adds the name of the custom collection attribute to
+ * the metadata manager.
  *
- * Why Metadata Key?
+ * This will be used by the framework so it knows
+ * what is the collection array attribute which
+ * will be used to store the models.
  *
- * Since in javascript/ts decorators are executed
- * at runtime, we cannot access to instances, we
- * will be able to modify the prototype only.
- * That's great until developers extends its
- * classes (for example model BasketBall extends
- * model Ball), that said we need classes to have
- * its own metadata key which is accesible by
- * its children but each class will modify only
- * its own metadata key.
- *
- * Symbols and WeakMaps are great, but we need
- * a key variable to store them so the instance can
- * retrieve it later, and we have no access
- * to the instances, so we couldn't assign a different
- * symbol stored in the same variable in the prototype.
- *
- * We don't want private key properties between instances,
- * but between prototypes.
  *
  * @param proto
  * @param attrName
  */
-/**
- * Decorator: @collection
- *
- * Adds the name of the custom attribute to
- * <CollectionPrototype>.metadataKEY. This
- * will be used by the framework so it knows
- * what is the collection attribute which
- * will store the models.
- *
- * Why Metadata Key?
- *
- * Since in javascript/ts decorators are executed
- * at runtime, we cannot access to instances, we
- * will be able to modify the prototype only.
- * That's great until developers extends its
- * classes (for example model BasketBall extends
- * model Ball), that said we need classes to have
- * its own metadata key which is accesible by
- * its children but each class will modify only
- * its own metadata key.
- *
- * Symbols and WeakMaps are great, but we need
- * a key variable to store them so the instance can
- * retrieve it later, and we have no access
- * to the instances, so we couldn't assign a different
- * symbol stored in the same variable in the prototype.
- *
- * We don't want private key properties between instances,
- * but between prototypes.
- *
- * @param proto
- * @param attrName
- */ function collection(proto, attrName) {
-    var className = proto._getClassName(), key = "__metadata__" + className + "__";
-    if (!proto.hasOwnProperty(key)) {
-        proto[key] = '';
-    }
-    proto[key] = attrName;
-}
-
-function setGlobals(app) {
-    window[app.getGlobalName()] = app;
-}
-function bootable(constructor) {
-    var app = new constructor();
-    new Kernel$$1(app);
-    setGlobals(app);
+function collection(proto, attrName) {
+    var metadataManager = Vessel$$1.prototype.container.get('@metadata_manager'), className = proto.getClassName();
+    metadataManager.setCollection(className, attrName);
 }
 
 var TodoModel = (function (_super) {
     __extends(TodoModel, _super);
-    function TodoModel(author, body) {
-        var _this = _super.call(this) || this;
-        _this.setAuthor(author);
-        _this.setBody(body);
-        return _this;
+    function TodoModel() {
+        return _super !== null && _super.apply(this, arguments) || this;
     }
     TodoModel.prototype.getAuthor = function () {
         return this.attr.author;
@@ -739,7 +738,7 @@ __decorate([
     })
 ], TodoModel.prototype, "setAuthor", null);
 __decorate([
-    validate(function (value) {
+    validate(function validateBody(value) {
         if (!(value.length >= 0 && value.length <= 120)) {
             throw TypeError("Body length must be less " +
                 "than 120 characters and must not be empty.");
@@ -764,7 +763,7 @@ __decorate([
     get('model.todo')
 ], TodoCollection.prototype, "model", void 0);
 
-var registrations = {
+var modules = {
     models: {
         'model.todo': TodoModel,
     },
@@ -779,16 +778,18 @@ var App = (function (_super) {
     function App() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
-    App.prototype.register = function () {
-        return registrations;
+    App.prototype.registerModules = function () {
+        return modules;
+    };
+    App.prototype.registerPackages = function () {
+        return [];
     };
     App.prototype.getGlobalName = function () {
         return '$App';
     };
     return App;
-}(AppBase$$1));
+}(BaseApp$$1));
 App = __decorate([
     bootable
 ], App);
-// var x = $App.container.startModule('collection.todos');
 //# sourceMappingURL=bundle.js.map

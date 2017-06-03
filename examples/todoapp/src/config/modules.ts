@@ -1,7 +1,7 @@
 import { TodoModel } from '../model/TodoModel';
 import { TodoCollection } from '../collection/TodoCollection';
 
-export const registrations = {
+export const modules = {
 
     models: {
         'model.todo': TodoModel,

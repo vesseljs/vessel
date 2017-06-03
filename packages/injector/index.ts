@@ -1,5 +1,5 @@
 // Boot
-export { InjectorBoot } from './src/boot/boot';
+export { Container } from './src/Container';
 
 // Decorators
 export { get } from './src/decorators/get';

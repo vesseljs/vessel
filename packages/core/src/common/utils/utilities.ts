@@ -30,6 +30,14 @@ export function isFunction( fn ) {
     return true;
 }
 
+export function isObject(exp: any) {
+    return typeof exp === "object";
+}
+
+export function toInitialUpperCase( string ) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
 export function defineProp( obj, prop, getter, setter ) {
     let descriptor = {
         enumerable: false,
@@ -98,4 +106,15 @@ export function filterOne(arr, fn, context=null) {
             return item;
     }
     return false;
+}
+
+export function merge(obj, obj2) {
+    let prop;
+    for (prop in obj2) {
+        try {
+            obj[prop] = isObject(obj2[prop]) ? merge(obj[prop], obj2[prop]) : obj2[prop];
+        } catch (e) {
+            obj[prop] = obj2[prop];
+        }
+    }
 }

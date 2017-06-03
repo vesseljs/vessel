@@ -1,7 +1,7 @@
 import { isSupported } from '@vessel/core';
 import { AppInterface } from '@vessel/types/definitions';
 
-export abstract class AppBase implements AppInterface {
+export abstract class BaseApp implements AppInterface {
 
 	public can;
 
@@ -22,6 +22,7 @@ export abstract class AppBase implements AppInterface {
 	}
 
 	public abstract getGlobalName();
-	public abstract register();
+	public abstract registerModules();
+	public abstract registerPackages();
 
 }
