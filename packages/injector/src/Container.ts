@@ -45,8 +45,9 @@ export class Container {
      * @metadata_manager (which is already registered
      * within ContainerLoader) avoiding an unkind infinite loop :)
      */
-    public getDependencies(className) {
-        let metadataManager = this.loadDependency('@', '@metadata_manager');
+    private getDependencies(className) {
+        let metadataConstructor = this.modules['@']['@metadata_manager'],
+            metadataManager = this.loadModule(metadataConstructor);
         return metadataManager.getDependencies(className);
     }
 
@@ -55,58 +56,71 @@ export class Container {
      * injecting its dependencies.
      */
     private resolveDependencies(name) {
-        let match = this.findModuleByName(name);
+        let constructor = this.findModuleByName(name);
 
-        if (!match) {
+        if (!constructor) {
             throw new TypeError("Attempt to get " +
                 "non-existent module: '" +
                 name +"'. Did you register it?");
         }
 
-        let moduleType = match.type,
-            constructor = match.constructor,
-            dependencies = this.getDependencies(constructor.name),
+        let dependencies = this.getDependencies(constructor.name),
             topParent = {
                 name: name,
-                constructor: constructor,
-                type: moduleType
+                constructor: constructor
             };
 
         each(dependencies, function(item){
-            this.inject(item.depName, item.attrName, [], null, topParent);
+            this.inject(item.depName, item.attrName, topParent);
         }, this);
 
-        return this.loadDependency(moduleType, name);
+        return this.loadModule(constructor);
     }
 
-    private inject(depName, attrName, parents=[], constructor=null, topParent) {
-        let match = this.findModuleByName(depName);
+    /**
+     * The purpose of this function is to
+     * get a @get('registrated_module_name') injected.
+     *
+     * All children dependencies are recursively resolved.
+     *
+     * The top parent of each container.inject() is
+     * the very first dependency.
+     *
+     * e.g. For a @get('module.name') the very first
+     * dependency is 'module.name', which will be injected
+     * to an instantiated constructor passed in as the
+     * 'constructor' parameter.
+     *
+     * @param depName is the current dependency name.
+     * @param attrName is the current attribute name to be injected on.
+     * @param topParent is an object with the name and constructor of
+     * the topParent dependency (not the module where we are injecting).
+     * @param parents is an array with the dependencies for a single @get().
+     * @param constructor is where the first dep will be injected.
+     *
+     */
+    private inject(depName, attrName, topParent, parents=[], constructor=null) {
+        let depConstructor = this.findModuleByName(depName);
 
-        if (!match) {
+        if (!depConstructor) {
             throw new TypeError("Attempt to inject " +
                 "non-existent dependency: '" +
                 depName +"'. Did you register it?");
         }
 
-        let depType = match.type,
-            depConstructor = match.constructor,
-            depDependencies = this.getDependencies(depConstructor.name);
-
-        if (this.isCircular(depName, parents, topParent)) {
+        if (this.isCircular(depName, parents, topParent.name)) {
             throw new RangeError("Circular dependency detected: "+
                 "module injection was impossible. Attempting to "+
                 "inject '" + depName + "' which have tried to "+
                 "resolve a parent dependency.");
         }
 
+        let depDependencies = this.getDependencies(depConstructor.name);
+
         parents.push(depName);
 
-        each(depDependencies, function(item) {
-            this.inject(item.depName,
-                item.attrName,
-                parents,
-                depConstructor,
-                topParent);
+        each(depDependencies, function(dep) {
+            this.inject(dep.depName, dep.attrName, topParent, parents, depConstructor);
         }, this);
 
         // Only the top-parent dependency enters here.
@@ -114,8 +128,8 @@ export class Container {
         if (parents.length === 1) {
             // Inject the very first parent dependency
             // to the module prototype.
-            let topParentInstance = this.loadDependency(topParent.type, topParent.name),
-                topDependencyInstance = this.loadDependency(depType, depName);
+            let topParentInstance = this.loadModule(topParent.constructor),
+                topDependencyInstance = this.loadModule(depConstructor);
             return topParentInstance[attrName] = topDependencyInstance;
         }
 
@@ -124,24 +138,16 @@ export class Container {
         parents.pop();
         // Inject the dependency to the parent prototype.
             let topDepInstance = this.loadModule(constructor),
-                depInstance = this.loadDependency(depType, depName);
+                depInstance = this.loadModule(depConstructor);
         return topDepInstance[attrName] = depInstance;
     }
 
-    private loadDependency(type, name) {
-        let constructor = this.modules[type][name];
-
-        if (type === 'models') {
-            throw new TypeError("Attempt to inject as dependency, or get with " +
-                "container.get(), the model '"+name+"'. Models cannot be injected as " +
-                "they will may be instantiated more than once so dependency injection " +
-                "would not make sense. If you are trying to get a model class just " +
-                "import it.");
-        }
-
-        return this.loadModule(constructor);
-    }
-
+    /**
+     * Loads a module by its constructor,
+     * if it's already instantiated it will
+     * return the instance, otherwise it will
+     * instantiate and then return it.
+     */
     private loadModule(constructor) {
         let cache = this.cache;
 
@@ -151,27 +157,27 @@ export class Container {
         return cache.get(constructor);
     }
 
+    /**
+     * Find a module by its name, when a
+     * match is found, the loop stops.
+     *
+     * Returns the constructor if a module
+     * is found.
+     */
     private findModuleByName(queryName) {
-        let i,
-            moduleType,
-            module,
-            modules = this.modules,
+        let modules = this.modules,
             keys = getKeys(modules),
             len = keys.length;
-        for (i = 0; i < len; i++) {
-            moduleType = keys[i];
-            module = modules[moduleType];
+        for (let i = 0; i < len; i++) {
+            let moduleType = keys[i],
+                module = modules[moduleType];
             if (module && module.hasOwnProperty(queryName))
-                return {
-                    type: moduleType,
-                    name: queryName,
-                    constructor: modules[moduleType][queryName]
-                };
+                return modules[moduleType][queryName];
         }
         return null;
     }
 
-    private isCircular(depName, parents, topParent) {
-        return depName === topParent.name || findItem(parents, depName);
+    private isCircular(depName, parents, topParentName) {
+        return depName === topParentName || findItem(parents, depName);
     }
 }
