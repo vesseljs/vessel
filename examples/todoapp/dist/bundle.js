@@ -11,6 +11,15 @@ function __decorate(decorators, target, key, desc) {
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 }
 
+var RouterBoot = (function () {
+    function RouterBoot() {
+    }
+    RouterBoot.prototype.setup = function (namespace) {
+        namespace.router;
+    };
+    return RouterBoot;
+}());
+
 var Metadata = (function () {
     function Metadata() {
     }
@@ -41,6 +50,10 @@ var MetadataManager$$1 = (function () {
          */
         this.cache = {};
     }
+    /**
+     * Setter/getters for
+     * built-in decorators.
+     */
     MetadataManager$$1.prototype.getDependencies = function (className) {
         return this.retrieve(className, Metadata.DEPENDENCIES_KEY);
     };
@@ -61,6 +74,22 @@ var MetadataManager$$1 = (function () {
     MetadataManager$$1.prototype.setCollection = function (className, attrName) {
         this.loadClass(className)[Metadata.COLLECTION_ATTRIBUTE_KEY] = attrName;
         return this;
+    };
+    /**
+     * Setter for add any kind of metadata,
+     * so any dev can use decorators
+     * which need metadata without
+     * re-coding the core
+     */
+    MetadataManager$$1.prototype.addMetadata = function (className, key, value) {
+        this.loadClass(className)[key] = value;
+        return this;
+    };
+    /**
+     * Getter for the setter right above.
+     */
+    MetadataManager$$1.prototype.getMetadata = function (className, key) {
+        return this.retrieve(className, key);
     };
     /**
      * Checks if a given
@@ -103,6 +132,23 @@ var MetadataManager$$1 = (function () {
     return MetadataManager$$1;
 }());
 
+/**
+ *
+ * Limitations:
+ *
+ * - You can't use a injected property by
+ * @get decorator within constructor or a method
+ * called immediately within the constructor. But you
+ * can always use this.get() or this.container.get()
+ * within constructor. That is, because @get decorator
+ * adds the dependencies but it doesn't inject them,
+ * the dependencies are resolved when the module is
+ * started from the container with a .get() or when
+ * the module is a dependency of a module which is being
+ * started with the container method .get(). That said,
+ * using the container method .get() returns the dependency
+ * immediately.
+ */
 var Container = (function () {
     function Container() {
         this.modules = {};
@@ -286,6 +332,14 @@ function get(depName) {
 
 // Boot
 
+/**
+ * Loads the injector Container
+ * and registers the MetadataManager
+ * so the injector is ready to use.
+ *
+ * It is needed to use decorators which
+ * use metadata and to inject dependencies.
+ */
 var ContainerLoader$$1 = (function () {
     function ContainerLoader$$1() {
         this.boot();
@@ -299,6 +353,12 @@ var ContainerLoader$$1 = (function () {
     return ContainerLoader$$1;
 }());
 
+/**
+ * Heart of the Vessel System.
+ *
+ * Manages the packages, services,
+ * injector and configuration.
+ */
 var Kernel$$1 = (function () {
     function Kernel$$1(app) {
         this.app = app;
@@ -329,8 +389,8 @@ var Kernel$$1 = (function () {
         each(arr, function (pkgs) {
             each(pkgs, function (pkg) {
                 pkg.setup(this.app);
-            });
-        });
+            }, this);
+        }, this);
         return this;
     };
     Kernel$$1.prototype.init = function () {
@@ -462,6 +522,18 @@ var Model$$1 = (function (_super) {
     Model$$1.prototype.fetch = function () {
     };
     return Model$$1;
+}(Vessel$$1));
+
+var Controller$$1 = (function (_super) {
+    __extends(Controller$$1, _super);
+    function Controller$$1() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    Controller$$1.prototype.render = function () {
+    };
+    Controller$$1.prototype.renderRoute = function () {
+    };
+    return Controller$$1;
 }(Vessel$$1));
 
 var View$$1 = (function (_super) {
@@ -662,6 +734,23 @@ function merge(obj, obj2) {
 // Base
 // Services
 
+function route(routeName, routePath) {
+    if (routePath === void 0) { routePath = undefined; }
+    return function (proto, name, descriptor) {
+        var metadata, className = proto.getClassName(), metadataManager = Vessel$$1.prototype.container.get('@metadata_manager');
+        metadata = metadataManager.getMetadata(className, 'routes');
+        if (!metadata) {
+            metadata = {};
+        }
+        metadata[routeName] = {
+            path: routePath,
+            bound: descriptor.value,
+            context: proto
+        };
+        metadataManager.addMetadata(className, 'routes', metadata);
+    };
+}
+
 function bootable(constructor) {
     var app = new constructor();
     new Kernel$$1(app).boot();
@@ -837,9 +926,40 @@ var FourthCollection = (function (_super) {
     return FourthCollection;
 }(Collection$$1));
 
+var TodoController = (function (_super) {
+    __extends(TodoController, _super);
+    function TodoController() {
+        var _this = _super.call(this) || this;
+        console.log(_this.get('collection.todos'));
+        return _this;
+    }
+    TodoController.prototype.indexTodo = function () {
+    };
+    TodoController.prototype.editTodo = function () {
+    };
+    TodoController.prototype.createTodo = function () {
+    };
+    return TodoController;
+}(Controller$$1));
+__decorate([
+    get('collection.todos')
+], TodoController.prototype, "collection", void 0);
+__decorate([
+    route('todo_index', '/')
+], TodoController.prototype, "indexTodo", null);
+__decorate([
+    route('todo_edit', '/edit/{id}')
+], TodoController.prototype, "editTodo", null);
+__decorate([
+    route('todo_create')
+], TodoController.prototype, "createTodo", null);
+
 var modules = {
     models: {
         'model.todo': TodoModel,
+    },
+    controllers: {
+        'controller.todo': TodoController
     },
     collections: {
         'collection.todos': TodoCollection,
@@ -859,7 +979,9 @@ var App = (function (_super) {
         return modules;
     };
     App.prototype.registerPackages = function () {
-        return [];
+        return [
+            new RouterBoot()
+        ];
     };
     App.prototype.getGlobalName = function () {
         return '$App';

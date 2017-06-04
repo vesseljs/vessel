@@ -11,7 +11,8 @@ export { Vessel } from './src/base/Vessel';
 export { Http } from './src/services/http/Http';
 export { Storage } from './src/services/storage/Storage';
 export { Model } from './src/base/model/Model';
-export { View } from './src/base/view/view';
+export { Controller } from './src/base/controller/Controller';
+export { View } from './src/base/view/View';
 export { Collection } from './src/base/collection/Collection';
 
 // Boot

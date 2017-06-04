@@ -1,5 +1,22 @@
 import { getKeys, each, findItem, merge } from '@vessel/core';
 
+/**
+ *
+ * Limitations:
+ *
+ * - You can't use a injected property by
+ * @get decorator within constructor or a method
+ * called immediately within the constructor. But you
+ * can always use this.get() or this.container.get()
+ * within constructor. That is, because @get decorator
+ * adds the dependencies but it doesn't inject them,
+ * the dependencies are resolved when the module is
+ * started from the container with a .get() or when
+ * the module is a dependency of a module which is being
+ * started with the container method .get(). That said,
+ * using the container method .get() returns the dependency
+ * immediately.
+ */
 export class Container {
 
     private modules = {};

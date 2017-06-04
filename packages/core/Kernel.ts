@@ -1,5 +1,11 @@
 import {Vessel, each } from '@vessel/core';
 
+/**
+ * Heart of the Vessel System.
+ *
+ * Manages the packages, services,
+ * injector and configuration.
+ */
 export class Kernel {
 
     private app;
@@ -40,8 +46,8 @@ export class Kernel {
         each(arr, function(pkgs) {
            each(pkgs, function(pkg){
                pkg.setup(this.app);
-           });
-        });
+           }, this);
+        }, this);
         return this;
     }
 

@@ -3,11 +3,16 @@ import { TodoCollection } from '../collection/TodoCollection';
 import {ThirdCollection} from "../collection/ThirdCollection";
 import {TestCollection} from "../collection/TestCollection";
 import {FourthCollection} from "../collection/FourthCollection";
+import {TodoController} from "../controller/TodoController";
 
 export const modules = {
 
     models: {
         'model.todo': TodoModel,
+    },
+
+    controllers: {
+        'controller.todo': TodoController
     },
 
     collections: {
@@ -16,6 +21,7 @@ export const modules = {
         'collection.third': ThirdCollection,
         'collection.fourth': FourthCollection
     },
+
 
     views: {
 

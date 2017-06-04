@@ -21,6 +21,11 @@ export class MetadataManager {
      */
     private cache = {};
 
+    /**
+     * Setter/getters for
+     * built-in decorators.
+     */
+
     public getDependencies(className) {
         return this.retrieve(className, Metadata.DEPENDENCIES_KEY);
     }
@@ -46,6 +51,24 @@ export class MetadataManager {
     public setCollection(className, attrName) {
         this.loadClass(className)[Metadata.COLLECTION_ATTRIBUTE_KEY] = attrName;
         return this;
+    }
+
+    /**
+     * Setter for add any kind of metadata,
+     * so any dev can use decorators
+     * which need metadata without
+     * re-coding the core
+     */
+    public addMetadata(className, key, value) {
+        this.loadClass(className)[key] = value;
+        return this;
+    }
+
+    /**
+     * Getter for the setter right above.
+     */
+    public getMetadata(className, key) {
+        return this.retrieve(className, key);
     }
 
     /**

@@ -10,12 +10,12 @@
     "lib": ["es6", "dom"],
     "paths": {
       "@vessel/core": ["core/"],
-      "@vessel/decorators/*": ["decorators/*"],
-      "@vessel/dom/*": ["dom/*"],
-      "@vessel/router/*": ["router/*"],
-      "@vessel/vessel-cli/*": ["vessel-cli/*"],
+      "@vessel/decorators": ["decorators/*"],
+      "@vessel/dom": ["dom/*"],
+      "@vessel/router": ["router/*"],
+      "@vessel/vessel-cli": ["vessel-cli/*"],
       "@vessel/injector": ["injector/"],
-      "@vessel/types/*": ["types/*"]
+      "@vessel/types": ["types/*"]
     }
   }
 }

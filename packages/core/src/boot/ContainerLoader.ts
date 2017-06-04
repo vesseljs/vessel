@@ -1,6 +1,14 @@
 import { MetadataManager } from '@vessel/core';
 import { Container } from '@vessel/injector';
 
+/**
+ * Loads the injector Container
+ * and registers the MetadataManager
+ * so the injector is ready to use.
+ *
+ * It is needed to use decorators which
+ * use metadata and to inject dependencies.
+ */
 export class ContainerLoader {
 
     public constructor() {

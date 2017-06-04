@@ -7,7 +7,4 @@ export class TestModel extends TodoModel {
     @attr
     public name;
 
-    constructor(name) {
-        super('test', 'tete');
-    }
 }

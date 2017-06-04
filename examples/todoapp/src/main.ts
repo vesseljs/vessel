@@ -1,3 +1,5 @@
+import { RouterBoot } from '@vessel/router';
+
 import { modules } from './config/modules';
 import { BaseApp } from '@vessel/core';
 import { bootable } from '@vessel/decorators';
@@ -13,6 +15,7 @@ class App extends BaseApp {
 
     public registerPackages() {
         return [
+            new RouterBoot()
         ];
     }
 
