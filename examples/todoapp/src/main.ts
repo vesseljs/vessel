@@ -4,6 +4,7 @@ import { modules } from './config/modules';
 import { BaseApp } from '@vessel/core';
 import { bootable } from '@vessel/decorators';
 
+import { MultipleKeyObject } from '@vessel/core';
 
 @bootable
 class App extends BaseApp {

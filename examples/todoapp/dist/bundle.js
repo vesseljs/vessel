@@ -30,13 +30,28 @@ Metadata.DEPENDENCIES_KEY = 'dependencies';
  * class MetadataManager.
  *
  * Provides a way to store/retrieve
- * metadata info. about classes.
+ * metadata info. about classes or
+ * raw data needed to the packages
+ * to work.
  *
- * e.g. Which attributes are being used
- * by the model, what is the name of
- * the attribute in the collection which
- * is the model array or what are the
- * dependencies of a class.
+ * This class manages the data
+ * so it can be set by decorators
+ * which are executed at runtime
+ * and retrieved later by the
+ * instantiated classes. If your
+ * package doesn't use decorators
+ * your package may not need the
+ * MetadataManager.
+ *
+ * Metadata e.g. Which attributes are
+ * being used by the model, what is
+ * the name of the attribute in the
+ * collection which is the model array
+ * or what are the dependencies of a
+ * class.
+ *
+ * Raw Data e.g. Object with paths
+ * and routes.
  *
  */
 var MetadataManager$$1 = (function () {
@@ -46,6 +61,11 @@ var MetadataManager$$1 = (function () {
          * for the loaded classes.
          */
         this.cache = {};
+        /**
+         * Container for
+         * raw data
+         */
+        this.raw = {};
     }
     /**
      * Setter/getters for
@@ -87,6 +107,21 @@ var MetadataManager$$1 = (function () {
      */
     MetadataManager$$1.prototype.getMetadata = function (className, key) {
         return this.retrieve(className, key);
+    };
+    /**
+     * Some packages need to store
+     * raw data not associated to any
+     * className.
+     */
+    MetadataManager$$1.prototype.addRawData = function (key, value) {
+        this.raw[key] = value;
+        return this;
+    };
+    /**
+     * Getter for raw data.
+     */
+    MetadataManager$$1.prototype.getRawData = function (key) {
+        return this.raw[key];
     };
     /**
      * Checks if a given
@@ -392,21 +427,36 @@ var Kernel$$1 = (function () {
 var Vessel$$1 = (function () {
     function Vessel$$1() {
     }
-    Vessel$$1.prototype.getClassName = function () {
-        return this.constructor.name;
-    };
-    Vessel$$1.prototype.get = function (module) {
-        return this.container.get(module);
-    };
     Object.defineProperty(Vessel$$1.prototype, "container", {
+        /**
+         * Container: Alias
+         *
+         * Alias so the instances of Views,
+         * Collections, Services, etc. can
+         * access container with this.container
+         *
+         */
         get: function () {
             return Vessel$$1.$container;
         },
         enumerable: true,
         configurable: true
     });
+    Vessel$$1.prototype.getClassName = function () {
+        return this.constructor.name;
+    };
+    Vessel$$1.prototype.get = function (module) {
+        return this.container.get(module);
+    };
     return Vessel$$1;
 }());
+/**
+ * Container
+ *
+ * Vessel.$container is accessible
+ * by decorators executed at runtime
+ *
+ */
 Vessel$$1.$container = new ContainerLoader$$1().boot();
 
 /**
@@ -715,6 +765,43 @@ function merge(obj, obj2) {
     }
 }
 
+/**
+ * MultipleKeyObject
+ *
+ * Provides a way to set
+ * values with multiple keys.
+ *
+ */
+var MultipleKeyObject$$1 = (function () {
+    function MultipleKeyObject$$1() {
+        this.container = {};
+    }
+    MultipleKeyObject$$1.prototype.set = function (keyGroup, value) {
+        var masterKey = keyGroup[0];
+        for (var i = 0, len = keyGroup.length; i < len; i++) {
+            var key = keyGroup[i];
+            if (this.has(key)) {
+                return this.container[key] = value;
+            }
+            if (key) {
+                defineProp(this.container, key, function getter() {
+                    return this["$" + masterKey];
+                }, function setter(v) {
+                    return this["$" + masterKey] = v;
+                });
+            }
+        }
+        return this.container[masterKey] = value;
+    };
+    MultipleKeyObject$$1.prototype.has = function (key) {
+        return this.container.hasOwnProperty(key);
+    };
+    MultipleKeyObject$$1.prototype.get = function (key) {
+        return this.container[key];
+    };
+    return MultipleKeyObject$$1;
+}());
+
 // Base
 // Services
 
@@ -737,23 +824,42 @@ var RouterBoot = (function (_super) {
 function route(routeName, routePath) {
     if (routePath === void 0) { routePath = undefined; }
     return function (proto, name, descriptor) {
-        var metadata, className = proto.getClassName(), metadataManager = Vessel$$1.$container.get('@metadata_manager');
-        metadata = metadataManager.getMetadata(className, 'routes');
-        if (!metadata) {
-            metadata = {};
+        var routes, metadataManager = Vessel$$1.$container.get('@metadata_manager');
+        routes = metadataManager.getRawData('cached_routes');
+        if (!routes) {
+            routes = new MultipleKeyObject$$1();
         }
-        metadata[routeName] = {
-            path: routePath,
+        routes.set([routeName, routePath], {
+            routeName: routeName,
+            routePath: routePath,
             bound: descriptor.value,
             context: proto
-        };
-        metadataManager.addMetadata(className, 'routes', metadata);
+        });
+        metadataManager.addRawData('cached_routes', routes);
     };
 }
 
 function bootable(constructor) {
     var app = new constructor();
     new Kernel$$1(app).boot();
+}
+
+/**
+ * Decorator: @get(moduleName)
+ *
+ * Uses the @metadata_manager service
+ *
+ *
+ * @param depName
+ */
+function get(depName) {
+    return function (proto, attrName) {
+        var metadataManager = Vessel$$1.$container.get('@metadata_manager'), className = proto.getClassName();
+        metadataManager.setDependency(className, {
+            attrName: attrName,
+            depName: depName
+        });
+    };
 }
 
 /**
@@ -771,6 +877,25 @@ function bootable(constructor) {
 function attr(proto, attrName) {
     var metadataManager = Vessel$$1.$container.get('@metadata_manager'), className = proto.getClassName();
     metadataManager.setAttribute(className, attrName);
+}
+
+/**
+ * Decorator: @collection
+ *
+ * Adds the name of the custom collection attribute to
+ * the metadata manager.
+ *
+ * This will be used by the framework so it knows
+ * what is the collection array attribute which
+ * will be used to store the models.
+ *
+ *
+ * @param proto
+ * @param attrName
+ */
+function collection(proto, attrName) {
+    var metadataManager = Vessel$$1.$container.get('@metadata_manager'), className = proto.getClassName();
+    metadataManager.setCollection(className, attrName);
 }
 
 /**
@@ -808,25 +933,6 @@ function validate(validationFn) {
         };
         return descriptor;
     };
-}
-
-/**
- * Decorator: @collection
- *
- * Adds the name of the custom collection attribute to
- * the metadata manager.
- *
- * This will be used by the framework so it knows
- * what is the collection array attribute which
- * will be used to store the models.
- *
- *
- * @param proto
- * @param attrName
- */
-function collection(proto, attrName) {
-    var metadataManager = Vessel$$1.$container.get('@metadata_manager'), className = proto.getClassName();
-    metadataManager.setCollection(className, attrName);
 }
 
 var TodoModel = (function (_super) {
@@ -877,40 +983,6 @@ __decorate([
     })
 ], TodoModel.prototype, "setBody", null);
 
-/**
- * Decorator: @get(moduleName)
- *
- * Uses the @metadata_manager service
- *
- *
- * @param depName
- */
-/*
-export function get(depName) {
-    return function(proto, attrName) {
-        let className = proto.getClassName(),
-            key = "__dependencies__" + className + "__";
-        if (!proto.hasOwnProperty(key)) {
-            proto[key] = [];
-        }
-        proto[key].push({
-            attrName: attrName,
-            depName: depName
-        });
-    }
-}*/
-function get(depName) {
-    return function (proto, attrName) {
-        var metadataManager = Vessel$$1.prototype.container.get('@metadata_manager'), className = proto.getClassName();
-        metadataManager.setDependency(className, {
-            attrName: attrName,
-            depName: depName
-        });
-    };
-}
-
-// Boot
-
 var TodoCollection = (function (_super) {
     __extends(TodoCollection, _super);
     function TodoCollection() {
@@ -927,6 +999,9 @@ __decorate([
 __decorate([
     get('collection.test')
 ], TodoCollection.prototype, "testCollection", void 0);
+__decorate([
+    get('collection.fifth')
+], TodoCollection.prototype, "fifthCollection", void 0);
 
 var ThirdCollection = (function (_super) {
     __extends(ThirdCollection, _super);
@@ -963,9 +1038,7 @@ var FourthCollection = (function (_super) {
 var TodoController = (function (_super) {
     __extends(TodoController, _super);
     function TodoController() {
-        var _this = _super.call(this) || this;
-        console.log(_this.get('collection.todos'));
-        return _this;
+        return _super !== null && _super.apply(this, arguments) || this;
     }
     TodoController.prototype.indexTodo = function () {
     };
@@ -988,6 +1061,16 @@ __decorate([
     route('todo_create')
 ], TodoController.prototype, "createTodo", null);
 
+var FifthCollection = (function (_super) {
+    __extends(FifthCollection, _super);
+    function FifthCollection() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.test = "fifth";
+        return _this;
+    }
+    return FifthCollection;
+}(Collection$$1));
+
 var modules = {
     models: {
         'model.todo': TodoModel,
@@ -996,10 +1079,11 @@ var modules = {
         'controller.todo': TodoController
     },
     collections: {
-        'collection.todos': TodoCollection,
+        'collection.todo': TodoCollection,
         'collection.test': TestCollection,
         'collection.third': ThirdCollection,
-        'collection.fourth': FourthCollection
+        'collection.fourth': FourthCollection,
+        'collection.fifth': FifthCollection
     },
     views: {}
 };

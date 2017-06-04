@@ -1,7 +1,5 @@
 import { Collection as BaseCollection } from '@vessel/core';
-import { collection } from '@vessel/decorators';
-
-import { get } from '@vessel/injector';
+import { get, collection } from '@vessel/decorators';
 
 import { TodoModel } from '../model/TodoModel';
 
@@ -15,5 +13,9 @@ export class TodoCollection extends BaseCollection {
 
     @get('collection.test')
     public testCollection;
+
+    @get('collection.fifth')
+    public fifthCollection;
+
 
 }

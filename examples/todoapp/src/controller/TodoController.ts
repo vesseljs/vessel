@@ -1,17 +1,12 @@
 import { Controller as BaseController } from '@vessel/core';
 
 import { route } from '@vessel/router';
-import { get } from '@vessel/injector';
+import { get } from '@vessel/decorators';
 
 export class TodoController extends BaseController {
 
     @get('collection.todos')
     public collection;
-
-    public constructor() {
-        super();
-        console.log(this.get('collection.todos'));
-    }
 
     @route('todo_index', '/')
     public indexTodo() {

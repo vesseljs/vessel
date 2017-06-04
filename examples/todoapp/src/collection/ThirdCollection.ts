@@ -1,9 +1,5 @@
 import { Collection as BaseCollection } from '@vessel/core';
-import { collection } from '@vessel/decorators';
-
-import { get } from '@vessel/injector';
-
-import { TodoModel } from '../model/TodoModel';
+import { get, collection } from '@vessel/decorators';
 
 
 export class ThirdCollection extends BaseCollection {

@@ -4,13 +4,28 @@ import { Metadata } from '@vessel/core';
  * class MetadataManager.
  *
  * Provides a way to store/retrieve
- * metadata info. about classes.
+ * metadata info. about classes or
+ * raw data needed to the packages
+ * to work.
  *
- * e.g. Which attributes are being used
- * by the model, what is the name of
- * the attribute in the collection which
- * is the model array or what are the
- * dependencies of a class.
+ * This class manages the data
+ * so it can be set by decorators
+ * which are executed at runtime
+ * and retrieved later by the
+ * instantiated classes. If your
+ * package doesn't use decorators
+ * your package may not need the
+ * MetadataManager.
+ *
+ * Metadata e.g. Which attributes are
+ * being used by the model, what is
+ * the name of the attribute in the
+ * collection which is the model array
+ * or what are the dependencies of a
+ * class.
+ *
+ * Raw Data e.g. Object with paths
+ * and routes.
  *
  */
 export class MetadataManager {
@@ -20,6 +35,12 @@ export class MetadataManager {
      * for the loaded classes.
      */
     private cache = {};
+
+    /**
+     * Container for
+     * raw data
+     */
+    private raw = {};
 
     /**
      * Setter/getters for
@@ -69,6 +90,23 @@ export class MetadataManager {
      */
     public getMetadata(className, key) {
         return this.retrieve(className, key);
+    }
+
+    /**
+     * Some packages need to store
+     * raw data not associated to any
+     * className.
+     */
+    public addRawData(key, value) {
+        this.raw[key] = value;
+        return this;
+    }
+
+    /**
+     * Getter for raw data.
+     */
+    public getRawData(key) {
+        return this.raw[key];
     }
 
     /**

@@ -4,6 +4,7 @@ import {ThirdCollection} from "../collection/ThirdCollection";
 import {TestCollection} from "../collection/TestCollection";
 import {FourthCollection} from "../collection/FourthCollection";
 import {TodoController} from "../controller/TodoController";
+import {FifthCollection} from "../collection/FifthCollection";
 
 export const modules = {
 
@@ -16,10 +17,11 @@ export const modules = {
     },
 
     collections: {
-        'collection.todos': TodoCollection,
+        'collection.todo': TodoCollection,
         'collection.test': TestCollection,
         'collection.third': ThirdCollection,
-        'collection.fourth': FourthCollection
+        'collection.fourth': FourthCollection,
+        'collection.fifth': FifthCollection
     },
 
 

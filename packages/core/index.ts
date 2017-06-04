@@ -1,7 +1,7 @@
 // Base
-export { Metadata } from './src/base/metadata/Metadata';
-export { MetadataManager } from './src/base/metadata/MetadataManager';
-export { Container } from './src/injector/src/Container';
+export { Metadata } from './src/metadata/Metadata';
+export { MetadataManager } from './src/metadata/MetadataManager';
+export { Container } from './src/injector/Container';
 export { ContainerLoader } from './src/boot/ContainerLoader';
 
 export { AbstractPackageBoot } from './src/boot/package/AbstractPackageBoot';
@@ -23,6 +23,7 @@ export { BaseApp } from './src/boot/app/App';
 
 // Common
 export  *  from './src/common/utils/utilities';
+export { MultipleKeyObject } from './src/common/utils/MultipleKeyObject';
 
 // Services
 
