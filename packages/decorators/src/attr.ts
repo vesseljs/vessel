@@ -13,7 +13,7 @@ import { Vessel } from '@vessel/core';
  * @param attrName
  */
 export function attr(proto, attrName) {
-    let metadataManager = Vessel.prototype.container.get('@metadata_manager'),
+    let metadataManager = Vessel.$container.get('@metadata_manager'),
         className = proto.getClassName();
 
     metadataManager.setAttribute(className, attrName);

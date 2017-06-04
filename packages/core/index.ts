@@ -1,7 +1,10 @@
 // Base
 export { Metadata } from './src/base/metadata/Metadata';
 export { MetadataManager } from './src/base/metadata/MetadataManager';
+export { Container } from './src/injector/src/Container';
 export { ContainerLoader } from './src/boot/ContainerLoader';
+
+export { AbstractPackageBoot } from './src/boot/package/AbstractPackageBoot';
 
 export { Kernel } from './Kernel';
 

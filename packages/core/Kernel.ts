@@ -1,12 +1,14 @@
 import {Vessel, each } from '@vessel/core';
 
 /**
- * Heart of the Vessel System.
+ * Heart of Vessel.
  *
  * Manages the packages, services,
  * injector and configuration.
  */
 export class Kernel {
+
+    private VERSION = '0.0.1-DEV';
 
     private app;
 
@@ -23,8 +25,8 @@ export class Kernel {
         window[this.app.getGlobalName()] = this.app;
     }
 
-    private getContainer() {
-        return Vessel.prototype.container;
+    get container() {
+        return Vessel.$container;
     }
 
     private setAppContainer(container) {
@@ -43,18 +45,20 @@ export class Kernel {
     }
 
     private loadPackages(arr) {
+        let namespace = this.app,
+            container = namespace.container;
         each(arr, function(pkgs) {
            each(pkgs, function(pkg){
-               pkg.setup(this.app);
+               pkg.register(container);
+               pkg.setup(namespace, container);
            }, this);
         }, this);
         return this;
     }
 
     private init() {
-        this.bootPackages();
 
-        let container = this.getContainer();
+        let container = this.container;
 
         if (!container) {
             throw new Error("Cannot register dependencies without " +
@@ -63,6 +67,8 @@ export class Kernel {
 
         this.registerDependencies(container)
             .setAppContainer(container);
+
+        this.bootPackages();
     }
 
 }

@@ -14,7 +14,7 @@ import { Vessel } from '@vessel/core';
  * @param attrName
  */
 export function collection(proto: any, attrName: string){
-    let metadataManager = Vessel.prototype.container.get('@metadata_manager'),
+    let metadataManager = Vessel.$container.get('@metadata_manager'),
         className = proto.getClassName();
 
     metadataManager.setCollection(className, attrName);

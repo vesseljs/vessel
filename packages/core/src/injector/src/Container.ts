@@ -42,7 +42,7 @@ export class Container {
 
         modules["@"][name] = module;
 
-        return this;
+        return this.loadModule(module);
     }
 
     /**

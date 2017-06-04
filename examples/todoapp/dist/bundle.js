@@ -11,13 +11,10 @@ function __decorate(decorators, target, key, desc) {
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 }
 
-var RouterBoot = (function () {
-    function RouterBoot() {
+var Router = (function () {
+    function Router() {
     }
-    RouterBoot.prototype.setup = function (namespace) {
-        namespace.router;
-    };
-    return RouterBoot;
+    return Router;
 }());
 
 var Metadata = (function () {
@@ -149,16 +146,16 @@ var MetadataManager$$1 = (function () {
  * using the container method .get() returns the dependency
  * immediately.
  */
-var Container = (function () {
-    function Container() {
+var Container$$1 = (function () {
+    function Container$$1() {
         this.modules = {};
         this.cache = new WeakMap();
     }
-    Container.prototype.register = function (opts) {
+    Container$$1.prototype.register = function (opts) {
         merge(this.modules, opts);
         return this;
     };
-    Container.prototype.registerSingleModule = function (name, module) {
+    Container$$1.prototype.registerSingleModule = function (name, module) {
         if (!module) {
             throw TypeError("Cannot registerSingleModule(name, module). 'module' was " + module);
         }
@@ -167,12 +164,12 @@ var Container = (function () {
             modules["@"] = {};
         }
         modules["@"][name] = module;
-        return this;
+        return this.loadModule(module);
     };
     /**
      * Gets a given module name.
      */
-    Container.prototype.get = function (name) {
+    Container$$1.prototype.get = function (name) {
         return this.resolveDependencies(name);
     };
     /**
@@ -185,7 +182,7 @@ var Container = (function () {
      * @metadata_manager (which is already registered
      * within ContainerLoader) avoiding an unkind infinite loop :)
      */
-    Container.prototype.getDependencies = function (className) {
+    Container$$1.prototype.getDependencies = function (className) {
         var metadataConstructor = this.modules['@']['@metadata_manager'], metadataManager = this.loadModule(metadataConstructor);
         return metadataManager.getDependencies(className);
     };
@@ -193,7 +190,7 @@ var Container = (function () {
      * Resolves dependencies for a given module, recursively
      * injecting its dependencies.
      */
-    Container.prototype.resolveDependencies = function (name) {
+    Container$$1.prototype.resolveDependencies = function (name) {
         var constructor = this.findModuleByName(name);
         if (!constructor) {
             throw new TypeError("Attempt to get " +
@@ -231,7 +228,7 @@ var Container = (function () {
      * @param constructor is where the first dep will be injected.
      *
      */
-    Container.prototype.inject = function (depName, attrName, topParent, parents, constructor) {
+    Container$$1.prototype.inject = function (depName, attrName, topParent, parents, constructor) {
         if (parents === void 0) { parents = []; }
         if (constructor === void 0) { constructor = null; }
         var depConstructor = this.findModuleByName(depName);
@@ -270,7 +267,7 @@ var Container = (function () {
      * return the instance, otherwise it will
      * instantiate and then return it.
      */
-    Container.prototype.loadModule = function (constructor) {
+    Container$$1.prototype.loadModule = function (constructor) {
         var cache = this.cache;
         if (!cache.has(constructor))
             cache.set(constructor, new constructor());
@@ -283,7 +280,7 @@ var Container = (function () {
      * Returns the constructor if a module
      * is found.
      */
-    Container.prototype.findModuleByName = function (queryName) {
+    Container$$1.prototype.findModuleByName = function (queryName) {
         var modules = this.modules, keys = getKeys(modules), len = keys.length;
         for (var i = 0; i < len; i++) {
             var moduleType = keys[i], module = modules[moduleType];
@@ -292,45 +289,11 @@ var Container = (function () {
         }
         return null;
     };
-    Container.prototype.isCircular = function (depName, parents, topParentName) {
+    Container$$1.prototype.isCircular = function (depName, parents, topParentName) {
         return depName === topParentName || findItem(parents, depName);
     };
-    return Container;
+    return Container$$1;
 }());
-
-/**
- * Decorator: @get(moduleName)
- *
- * Uses the @metadata_manager service
- *
- *
- * @param depName
- */
-/*
-export function get(depName) {
-    return function(proto, attrName) {
-        let className = proto.getClassName(),
-            key = "__dependencies__" + className + "__";
-        if (!proto.hasOwnProperty(key)) {
-            proto[key] = [];
-        }
-        proto[key].push({
-            attrName: attrName,
-            depName: depName
-        });
-    }
-}*/
-function get(depName) {
-    return function (proto, attrName) {
-        var metadataManager = Vessel$$1.prototype.container.get('@metadata_manager'), className = proto.getClassName();
-        metadataManager.setDependency(className, {
-            attrName: attrName,
-            depName: depName
-        });
-    };
-}
-
-// Boot
 
 /**
  * Loads the injector Container
@@ -345,22 +308,30 @@ var ContainerLoader$$1 = (function () {
         this.boot();
     }
     ContainerLoader$$1.prototype.boot = function () {
-        return this.registerTo(new Container());
+        return this.registerTo(new Container$$1());
     };
     ContainerLoader$$1.prototype.registerTo = function (container) {
-        return container.registerSingleModule('@metadata_manager', MetadataManager$$1);
+        container.registerSingleModule('@metadata_manager', MetadataManager$$1);
+        return container;
     };
     return ContainerLoader$$1;
 }());
 
+var AbstractPackageBoot = (function () {
+    function AbstractPackageBoot() {
+    }
+    return AbstractPackageBoot;
+}());
+
 /**
- * Heart of the Vessel System.
+ * Heart of Vessel.
  *
  * Manages the packages, services,
  * injector and configuration.
  */
 var Kernel$$1 = (function () {
     function Kernel$$1(app) {
+        this.VERSION = '0.0.1-DEV';
         this.app = app;
     }
     Kernel$$1.prototype.boot = function () {
@@ -370,9 +341,13 @@ var Kernel$$1 = (function () {
     Kernel$$1.prototype.setGlobals = function () {
         window[this.app.getGlobalName()] = this.app;
     };
-    Kernel$$1.prototype.getContainer = function () {
-        return Vessel$$1.prototype.container;
-    };
+    Object.defineProperty(Kernel$$1.prototype, "container", {
+        get: function () {
+            return Vessel$$1.$container;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Kernel$$1.prototype.setAppContainer = function (container) {
         this.app.container = container;
     };
@@ -386,22 +361,24 @@ var Kernel$$1 = (function () {
         this.loadPackages([bootPackages]);
     };
     Kernel$$1.prototype.loadPackages = function (arr) {
+        var namespace = this.app, container = namespace.container;
         each(arr, function (pkgs) {
             each(pkgs, function (pkg) {
-                pkg.setup(this.app);
+                pkg.register(container);
+                pkg.setup(namespace, container);
             }, this);
         }, this);
         return this;
     };
     Kernel$$1.prototype.init = function () {
-        this.bootPackages();
-        var container = this.getContainer();
+        var container = this.container;
         if (!container) {
             throw new Error("Cannot register dependencies without " +
                 "the injector package.");
         }
         this.registerDependencies(container)
             .setAppContainer(container);
+        this.bootPackages();
     };
     return Kernel$$1;
 }());
@@ -421,9 +398,16 @@ var Vessel$$1 = (function () {
     Vessel$$1.prototype.get = function (module) {
         return this.container.get(module);
     };
+    Object.defineProperty(Vessel$$1.prototype, "container", {
+        get: function () {
+            return Vessel$$1.$container;
+        },
+        enumerable: true,
+        configurable: true
+    });
     return Vessel$$1;
 }());
-Vessel$$1.prototype.container = new ContainerLoader$$1().boot();
+Vessel$$1.$container = new ContainerLoader$$1().boot();
 
 /**
  * Attribute proxy.
@@ -734,10 +718,26 @@ function merge(obj, obj2) {
 // Base
 // Services
 
+var RouterBoot = (function (_super) {
+    __extends(RouterBoot, _super);
+    function RouterBoot() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.VERSION = '1.0.0-DEV';
+        return _this;
+    }
+    RouterBoot.prototype.register = function (container) {
+        container.registerSingleModule('@router', Router);
+    };
+    RouterBoot.prototype.setup = function (namespace, container) {
+        namespace.router = container.get('@router');
+    };
+    return RouterBoot;
+}(AbstractPackageBoot));
+
 function route(routeName, routePath) {
     if (routePath === void 0) { routePath = undefined; }
     return function (proto, name, descriptor) {
-        var metadata, className = proto.getClassName(), metadataManager = Vessel$$1.prototype.container.get('@metadata_manager');
+        var metadata, className = proto.getClassName(), metadataManager = Vessel$$1.$container.get('@metadata_manager');
         metadata = metadataManager.getMetadata(className, 'routes');
         if (!metadata) {
             metadata = {};
@@ -769,7 +769,7 @@ function bootable(constructor) {
  * @param attrName
  */
 function attr(proto, attrName) {
-    var metadataManager = Vessel$$1.prototype.container.get('@metadata_manager'), className = proto.getClassName();
+    var metadataManager = Vessel$$1.$container.get('@metadata_manager'), className = proto.getClassName();
     metadataManager.setAttribute(className, attrName);
 }
 
@@ -825,7 +825,7 @@ function validate(validationFn) {
  * @param attrName
  */
 function collection(proto, attrName) {
-    var metadataManager = Vessel$$1.prototype.container.get('@metadata_manager'), className = proto.getClassName();
+    var metadataManager = Vessel$$1.$container.get('@metadata_manager'), className = proto.getClassName();
     metadataManager.setCollection(className, attrName);
 }
 
@@ -876,6 +876,40 @@ __decorate([
         return true;
     })
 ], TodoModel.prototype, "setBody", null);
+
+/**
+ * Decorator: @get(moduleName)
+ *
+ * Uses the @metadata_manager service
+ *
+ *
+ * @param depName
+ */
+/*
+export function get(depName) {
+    return function(proto, attrName) {
+        let className = proto.getClassName(),
+            key = "__dependencies__" + className + "__";
+        if (!proto.hasOwnProperty(key)) {
+            proto[key] = [];
+        }
+        proto[key].push({
+            attrName: attrName,
+            depName: depName
+        });
+    }
+}*/
+function get(depName) {
+    return function (proto, attrName) {
+        var metadataManager = Vessel$$1.prototype.container.get('@metadata_manager'), className = proto.getClassName();
+        metadataManager.setDependency(className, {
+            attrName: attrName,
+            depName: depName
+        });
+    };
+}
+
+// Boot
 
 var TodoCollection = (function (_super) {
     __extends(TodoCollection, _super);

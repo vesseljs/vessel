@@ -1,11 +1,16 @@
+import { Router } from '../Router';
+import { AbstractPackageBoot } from '@vessel/core';
 
+export class RouterBoot extends AbstractPackageBoot {
 
-export class RouterBoot {
+    protected VERSION = '1.0.0-DEV';
 
-    public router;
+    public register(container) {
+        container.registerSingleModule('@router', Router);
+    }
 
-    public setup(namespace) {
-        namespace.router;
+    public setup(namespace, container) {
+        namespace.router = container.get('@router');
     }
 
 }
