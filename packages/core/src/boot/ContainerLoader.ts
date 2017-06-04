@@ -1,5 +1,5 @@
 import { MetadataManager } from '@vessel/core';
-import { Container } from '@vessel/injector';
+import { Container } from '@vessel/core';
 
 /**
  * Loads the injector Container
@@ -20,7 +20,8 @@ export class ContainerLoader {
     }
 
     private registerTo(container) {
-        return container.registerSingleModule('@metadata_manager', MetadataManager);
+        container.registerSingleModule('@metadata_manager', MetadataManager);
+        return container;
     }
 
 }
