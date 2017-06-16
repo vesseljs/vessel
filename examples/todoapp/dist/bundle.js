@@ -11,18 +11,13 @@ function __decorate(decorators, target, key, desc) {
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 }
 
-var Router = (function () {
-    function Router() {
-    }
-    return Router;
-}());
-
 var Metadata = (function () {
     function Metadata() {
     }
     return Metadata;
 }());
 Metadata.MODEL_ATTRIBUTES_KEY = 'attributes';
+Metadata.MODEL_IDENTIFIER_KEY = 'identifier';
 Metadata.COLLECTION_ATTRIBUTE_KEY = 'collection';
 Metadata.DEPENDENCIES_KEY = 'dependencies';
 
@@ -90,6 +85,13 @@ var MetadataManager$$1 = (function () {
     };
     MetadataManager$$1.prototype.setCollection = function (className, attrName) {
         this.loadClass(className)[Metadata.COLLECTION_ATTRIBUTE_KEY] = attrName;
+        return this;
+    };
+    MetadataManager$$1.prototype.getIdentifier = function (className) {
+        return this.retrieve(className, Metadata.MODEL_IDENTIFIER_KEY);
+    };
+    MetadataManager$$1.prototype.setIdentifier = function (className, attrName) {
+        this.loadClass(className)[Metadata.MODEL_IDENTIFIER_KEY] = attrName;
         return this;
     };
     /**
@@ -192,11 +194,14 @@ var Container$$1 = (function () {
     };
     Container$$1.prototype.registerSingleModule = function (name, module) {
         if (!module) {
-            throw TypeError("Cannot registerSingleModule(name, module). 'module' was " + module);
+            throw TypeError("Cannot registerSingleModule(), 'module' was " + module);
         }
         var modules = this.modules;
         if (!modules.hasOwnProperty("@")) {
             modules["@"] = {};
+        }
+        if (modules["@"].hasOwnProperty(name)) {
+            throw TypeError("Cannot registerSingleModule(), '" + name + "' is already registered");
         }
         modules["@"][name] = module;
         return this.loadModule(module);
@@ -206,6 +211,22 @@ var Container$$1 = (function () {
      */
     Container$$1.prototype.get = function (name) {
         return this.resolveDependencies(name);
+    };
+    /**
+     * Loads a module by its constructor,
+     * if it's already instantiated it will
+     * return the instance, otherwise it will
+     * instantiate and then return it.
+     *
+     * It can be used to get an instance directly
+     * without its name but it will not resolve
+     * its @get() dependencies.
+     */
+    Container$$1.prototype.loadModule = function (constructor) {
+        var cache = this.cache;
+        if (!cache.has(constructor))
+            cache.set(constructor, new constructor());
+        return cache.get(constructor);
     };
     /**
      * Gets the dependencies of a given className.
@@ -268,9 +289,9 @@ var Container$$1 = (function () {
         if (constructor === void 0) { constructor = null; }
         var depConstructor = this.findModuleByName(depName);
         if (!depConstructor) {
-            throw new TypeError("Attempt to inject " +
-                "non-existent dependency: '" +
-                depName + "'. Did you register it?");
+            throw new TypeError("Injection error on '" + topParent.name +
+                "': Attempt to inject non-existent dependency: '"
+                + depName + "'. Did you register it?");
         }
         if (this.isCircular(depName, parents, topParent.name)) {
             throw new RangeError("Circular dependency detected: " +
@@ -295,18 +316,6 @@ var Container$$1 = (function () {
         // Inject the dependency to the parent prototype.
         var topDepInstance = this.loadModule(constructor), depInstance = this.loadModule(depConstructor);
         return topDepInstance[attrName] = depInstance;
-    };
-    /**
-     * Loads a module by its constructor,
-     * if it's already instantiated it will
-     * return the instance, otherwise it will
-     * instantiate and then return it.
-     */
-    Container$$1.prototype.loadModule = function (constructor) {
-        var cache = this.cache;
-        if (!cache.has(constructor))
-            cache.set(constructor, new constructor());
-        return cache.get(constructor);
     };
     /**
      * Find a module by its name, when a
@@ -370,11 +379,12 @@ var Kernel$$1 = (function () {
         this.app = app;
     }
     Kernel$$1.prototype.boot = function () {
-        this.setGlobals();
-        this.init();
+        this.setGlobals()
+            .init();
     };
     Kernel$$1.prototype.setGlobals = function () {
         window[this.app.getGlobalName()] = this.app;
+        return this;
     };
     Object.defineProperty(Kernel$$1.prototype, "container", {
         get: function () {
@@ -385,6 +395,7 @@ var Kernel$$1 = (function () {
     });
     Kernel$$1.prototype.setAppContainer = function (container) {
         this.app.container = container;
+        return this;
     };
     Kernel$$1.prototype.registerDependencies = function (container) {
         var registrations = this.app.registerModules();
@@ -393,7 +404,7 @@ var Kernel$$1 = (function () {
     };
     Kernel$$1.prototype.bootPackages = function () {
         var bootPackages = this.app.registerPackages();
-        this.loadPackages([bootPackages]);
+        return this.loadPackages([bootPackages]);
     };
     Kernel$$1.prototype.loadPackages = function (arr) {
         var namespace = this.app, container = namespace.container;
@@ -401,8 +412,8 @@ var Kernel$$1 = (function () {
             each(pkgs, function (pkg) {
                 pkg.register(container);
                 pkg.setup(namespace, container);
-            }, this);
-        }, this);
+            });
+        });
         return this;
     };
     Kernel$$1.prototype.init = function () {
@@ -412,11 +423,25 @@ var Kernel$$1 = (function () {
                 "the injector package.");
         }
         this.registerDependencies(container)
-            .setAppContainer(container);
-        this.bootPackages();
+            .setAppContainer(container)
+            .bootPackages();
+        return this;
     };
     return Kernel$$1;
 }());
+
+var BaseTypes = (function () {
+    function BaseTypes() {
+    }
+    return BaseTypes;
+}());
+BaseTypes.VESSEL = 'vessel';
+BaseTypes.MODEL = 'model';
+BaseTypes.CONTROLLER = 'controller';
+BaseTypes.COLLECTION = 'collection';
+BaseTypes.VIEW = 'view';
+BaseTypes.BRIDGE = 'bridge';
+BaseTypes.SERVICE = 'service';
 
 /**
  * Vessel's Main class.
@@ -426,6 +451,7 @@ var Kernel$$1 = (function () {
  */
 var Vessel$$1 = (function () {
     function Vessel$$1() {
+        this._type = BaseTypes.VESSEL;
     }
     Object.defineProperty(Vessel$$1.prototype, "container", {
         /**
@@ -444,6 +470,9 @@ var Vessel$$1 = (function () {
     });
     Vessel$$1.prototype.getClassName = function () {
         return this.constructor.name;
+    };
+    Vessel$$1.prototype.getType = function () {
+        return this._type;
     };
     Vessel$$1.prototype.get = function (module) {
         return this.container.get(module);
@@ -500,6 +529,7 @@ var Model$$1 = (function (_super) {
     __extends(Model$$1, _super);
     function Model$$1() {
         var _this = _super.call(this) || this;
+        _this._type = BaseTypes.MODEL;
         _this._createProxy();
         return _this;
     }
@@ -516,6 +546,28 @@ var Model$$1 = (function (_super) {
         }, this);
         return this;
     };
+    Model$$1.prototype.save = function () {
+        var bridge = this.getBridge();
+        if (this.isNew()) {
+            return bridge.post(this);
+        }
+        return bridge.put(this);
+    };
+    Model$$1.prototype.fetch = function () {
+        return this.getBridge().get(this);
+    };
+    Model$$1.prototype.remove = function () {
+        return this.getBridge().remove(this);
+    };
+    Model$$1.prototype.getIdentifier = function () {
+        var attrName = this
+            .get('@metadata_manager')
+            .getIdentifier(this.getClassName());
+        return this[attrName];
+    };
+    Model$$1.prototype.isNew = function () {
+        return !this.getIdentifier();
+    };
     /**
      * Instances the attribute proxy, it adds each
      * attribute defined in the model with the
@@ -523,8 +575,8 @@ var Model$$1 = (function (_super) {
      * @private
      */
     Model$$1.prototype._createProxy = function () {
-        var attrs, metadaManager = this.get('@metadata_manager');
-        attrs = metadaManager.getAttributes(this.getClassName());
+        var attrs, metadataManager = this.get('@metadata_manager');
+        attrs = metadataManager.getAttributes(this.getClassName());
         if (isArrayEmpty(attrs)) {
             throw TypeError("Attempt to create a proxy" +
                 " with no metadata.");
@@ -551,9 +603,8 @@ var Model$$1 = (function (_super) {
     Model$$1.prototype._validate = function (value, validationFn) {
         return validationFn(value);
     };
-    Model$$1.prototype.save = function () {
-    };
-    Model$$1.prototype.fetch = function () {
+    Model$$1.prototype.getBridge = function () {
+        return this.get(this._bridge);
     };
     return Model$$1;
 }(Vessel$$1));
@@ -561,20 +612,310 @@ var Model$$1 = (function (_super) {
 var Controller$$1 = (function (_super) {
     __extends(Controller$$1, _super);
     function Controller$$1() {
-        return _super !== null && _super.apply(this, arguments) || this;
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this._type = BaseTypes.CONTROLLER;
+        return _this;
     }
-    Controller$$1.prototype.render = function () {
+    Controller$$1.prototype.render = function (viewName, renderData) {
+        return this.get('@vdom').render(viewName, renderData);
     };
-    Controller$$1.prototype.renderRoute = function () {
+    Controller$$1.prototype.renderRoute = function (routeName) {
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            args[_i - 1] = arguments[_i];
+        }
+        return (_a = this.get('@router')).renderRoute.apply(_a, [routeName].concat(args));
+        var _a;
     };
     return Controller$$1;
 }(Vessel$$1));
 
+var VirtualNode = (function () {
+    function VirtualNode(type) {
+        this.children = [];
+        this.attributes = {};
+        this.element = null;
+        this.type = type;
+    }
+    VirtualNode.prototype.setEl = function (elem) {
+        this.element = elem;
+        return this;
+    };
+    VirtualNode.prototype.el = function () {
+        return this.element;
+    };
+    VirtualNode.prototype.set = function (props) {
+        merge(this.attributes, props);
+        return this;
+    };
+    VirtualNode.prototype.text = function (str) {
+        var children = this.children;
+        if (children.length === 0)
+            children.push(toString(str));
+        return this;
+    };
+    VirtualNode.prototype.appendTo = function ($parent) {
+        $parent.children.push(this);
+        return this;
+    };
+    VirtualNode.prototype.append = function ($child) {
+        this.children.push($child);
+        return this;
+    };
+    VirtualNode.prototype.css = function (attrs) {
+        var style = '';
+        each(attrs, function (attr, value) {
+            style += attr + ":" + value + ";";
+        });
+        return this.set({
+            'style': style
+        });
+    };
+    VirtualNode.prototype.link = function (url) {
+        return this.set({
+            href: url
+        });
+    };
+    VirtualNode.prototype.event = function (name, fn) {
+        this.attributes[name] = fn;
+        return this;
+    };
+    VirtualNode.prototype.click = function (fn) {
+        return this.set({
+            'onclick': fn
+        });
+    };
+    VirtualNode.prototype.dblClick = function (fn) {
+        return this.set({
+            'ondblclick': fn
+        });
+    };
+    VirtualNode.prototype.change = function (fn) {
+        return this.set({
+            'onchange': fn
+        });
+    };
+    VirtualNode.prototype.mouseOver = function (fn) {
+        return this.set({
+            'onmouseover': fn
+        });
+    };
+    VirtualNode.prototype.mouseMove = function (fn) {
+        return this.set({
+            'onmousemove': fn
+        });
+    };
+    VirtualNode.prototype.mouseOut = function (fn) {
+        return this.set({
+            'onmouseout': fn
+        });
+    };
+    VirtualNode.prototype.mouseEnter = function (fn) {
+        return this.set({
+            'onmouseenter': fn
+        });
+    };
+    VirtualNode.prototype.mouseLeave = function (fn) {
+        return this.set({
+            'onmouseleave': fn
+        });
+    };
+    VirtualNode.prototype.mouseUp = function (fn) {
+        return this.set({
+            'onmouseup': fn
+        });
+    };
+    VirtualNode.prototype.keyDown = function (fn) {
+        return this.set({
+            'onkeydown': fn
+        });
+    };
+    VirtualNode.prototype.keyUp = function (fn) {
+        return this.set({
+            'onkeyup': fn
+        });
+    };
+    VirtualNode.prototype.keyPress = function (fn) {
+        return this.set({
+            'onkeypress': fn
+        });
+    };
+    VirtualNode.prototype.resize = function (fn) {
+        return this.set({
+            'onresize': fn
+        });
+    };
+    VirtualNode.prototype.focus = function (fn) {
+        return this.set({
+            'onfocus': fn
+        });
+    };
+    VirtualNode.prototype.focusIn = function (fn) {
+        return this.set({
+            'onfocusin': fn
+        });
+    };
+    VirtualNode.prototype.focusOut = function (fn) {
+        return this.set({
+            'onfocusout': fn
+        });
+    };
+    VirtualNode.prototype.select = function (fn) {
+        return this.set({
+            'onselect': fn
+        });
+    };
+    VirtualNode.prototype.model = function () {
+    };
+    return VirtualNode;
+}());
+
+var VirtualDOM = (function () {
+    function VirtualDOM() {
+    }
+    VirtualDOM.create = function (type) {
+        return new VirtualNode(type);
+    };
+    VirtualDOM.prototype.render = function (viewName, renderData) {
+        var $new, $old, parent, view = Vessel$$1.$container.get(viewName);
+        view.setState(renderData);
+        $new = view.render();
+        $old = view.getLastNode();
+        parent = document.querySelector(view.getParent());
+        return view.setLastNode(this.updateNode(parent, $new, $old));
+    };
+    VirtualDOM.prototype.updateNode = function (parent, $newNode, $oldNode, childIndex) {
+        if ($oldNode === void 0) { $oldNode = undefined; }
+        if (childIndex === void 0) { childIndex = 0; }
+        if (!$newNode) {
+            this.removeChild(parent, childIndex);
+        }
+        else if (!$oldNode) {
+            this.appendChild(parent, $newNode);
+        }
+        else if (this.hasChanged($newNode, $oldNode)) {
+            this.replaceChild(parent, $newNode, childIndex);
+        }
+        else if ($newNode.type) {
+            var nextParent = parent.childNodes[childIndex], newChildrenLen = $newNode.children.length, oldChildrenLen = $oldNode.children.length, newAttr = $newNode.attributes, oldAttr = $oldNode.attributes;
+            for (var attrName in newAttr || oldAttr) {
+                this.updateAttribute(nextParent, attrName, newAttr[attrName], oldAttr[attrName]);
+            }
+            for (var currentChild = 0; currentChild < newChildrenLen || currentChild < oldChildrenLen; currentChild++) {
+                var $new = $newNode.children[currentChild], $old = $oldNode.children[currentChild];
+                this.updateNode(nextParent, $new, $old, currentChild);
+            }
+        }
+        return $newNode;
+    };
+    VirtualDOM.prototype.updateAttribute = function (elem, attrName, newValue, oldValue) {
+        if (!newValue) {
+            this.removeAttribute(elem, attrName, oldValue);
+        }
+        else if (!oldValue || oldValue !== newValue) {
+            this.setAttribute(elem, attrName, newValue);
+        }
+    };
+    VirtualDOM.prototype.createRealElement = function ($node) {
+        if (isString($node)) {
+            return document.createTextNode($node);
+        }
+        var $child, elem = document.createElement($node.type), children = $node.children;
+        this.setAttributes(elem, $node.attributes);
+        if (children) {
+            for (var i = 0, len = children.length; i < len; i++) {
+                $child = children[i];
+                elem.appendChild(this.createRealElement($child));
+            }
+        }
+        $node.setEl(elem);
+        return elem;
+    };
+    VirtualDOM.prototype.hasChanged = function ($node1, $node2) {
+        return typeof $node1 !== typeof $node2 ||
+            typeof $node1 === Types.STRING && $node1 !== $node2 ||
+            $node1.type != $node2.type;
+    };
+    VirtualDOM.prototype.setAttribute = function (elem, name, value) {
+        elem.setAttribute(name, value);
+    };
+    VirtualDOM.prototype.removeAttribute = function (elem, name, value) {
+        elem.removeAttribute(name, value);
+    };
+    VirtualDOM.prototype.setAttributes = function (elem, attributes) {
+        each(attributes, function (name, value) {
+            if (isEvent(name)) {
+                this.addEvent(elem, name, value);
+            }
+            else {
+                this.setAttribute(elem, name, value);
+            }
+        }, this);
+    };
+    VirtualDOM.prototype.addEvent = function (elem, eventName, boundFn) {
+        return elem.addEventListener(formatEvent(eventName), boundFn);
+    };
+    VirtualDOM.prototype.removeChild = function (parent, index) {
+        parent.removeChild(parent.childNodes[index]);
+    };
+    VirtualDOM.prototype.appendChild = function (parent, $newNode) {
+        parent.appendChild(this.createRealElement($newNode));
+    };
+    VirtualDOM.prototype.replaceChild = function (parent, $newNode, index) {
+        parent.replaceChild(this.createRealElement($newNode), parent.childNodes[index]);
+    };
+    return VirtualDOM;
+}());
+
+var VirtualDOMBoot = (function (_super) {
+    __extends(VirtualDOMBoot, _super);
+    function VirtualDOMBoot() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.VERSION = '1.0.0-DEV';
+        return _this;
+    }
+    VirtualDOMBoot.prototype.register = function (container) {
+        container.registerSingleModule('@vdom', VirtualDOM);
+    };
+    VirtualDOMBoot.prototype.setup = function (namespace, container) {
+        namespace.router = container.get('@vdom');
+    };
+    return VirtualDOMBoot;
+}(AbstractPackageBoot));
+
 var View$$1 = (function (_super) {
     __extends(View$$1, _super);
     function View$$1() {
-        return _super !== null && _super.apply(this, arguments) || this;
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this._type = BaseTypes.VIEW;
+        _this.state = {};
+        return _this;
     }
+    View$$1.prototype.setState = function (state) {
+        merge(this.state, state);
+        return this;
+    };
+    View$$1.prototype.getLastNode = function () {
+        return this.$lastNode;
+    };
+    View$$1.prototype.setLastNode = function ($node) {
+        this.$lastNode = $node;
+        return this;
+    };
+    View$$1.prototype.getParent = function () {
+        return this.parent;
+    };
+    View$$1.prototype.renderRoute = function (routeName) {
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            args[_i - 1] = arguments[_i];
+        }
+        return (_a = this.get('@router')).renderRoute.apply(_a, [routeName].concat(args));
+        var _a;
+    };
+    View$$1.prototype.create = function (nodeType) {
+        return VirtualDOM.create(nodeType);
+    };
     return View$$1;
 }(Vessel$$1));
 
@@ -582,7 +923,9 @@ var prefixAttr = 'attr';
 var Collection$$1 = (function (_super) {
     __extends(Collection$$1, _super);
     function Collection$$1() {
-        return _super !== null && _super.apply(this, arguments) || this;
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this._type = BaseTypes.COLLECTION;
+        return _this;
     }
     Collection$$1.prototype.add = function () {
         var args = [];
@@ -656,8 +999,62 @@ var BaseApp$$1 = (function () {
     return BaseApp$$1;
 }());
 
+var Types = (function () {
+    function Types() {
+    }
+    return Types;
+}());
+Types.STRING = 'string';
+Types.OBJECT = 'object';
+Types.FUNCTION = 'function';
+Types.NUMBER = 'number';
+
+var RegExp = (function () {
+    function RegExp() {
+    }
+    return RegExp;
+}());
+RegExp.EVENT_EXP = /^on/;
+
+/**
+ * MultipleKeyObject
+ *
+ * Provides a way to set
+ * values with multiple keys.
+ *
+ */
+var MultipleKeyObject$$1 = (function () {
+    function MultipleKeyObject$$1() {
+        this.container = {};
+    }
+    MultipleKeyObject$$1.prototype.set = function (keyGroup, value) {
+        var masterKey = keyGroup[0];
+        for (var i = 0, len = keyGroup.length; i < len; i++) {
+            var key = keyGroup[i];
+            if (this.has(key)) {
+                return this.container[key] = value;
+            }
+            if (key) {
+                defineProp(this.container, key, function getter() {
+                    return this["$" + masterKey];
+                }, function setter(v) {
+                    return this["$" + masterKey] = v;
+                });
+            }
+        }
+        return this.container[masterKey] = value;
+    };
+    MultipleKeyObject$$1.prototype.has = function (key) {
+        return this.container.hasOwnProperty(key);
+    };
+    MultipleKeyObject$$1.prototype.get = function (key) {
+        return this.container[key];
+    };
+    return MultipleKeyObject$$1;
+}());
+
 function isSupported(feature) {
-    return typeof feature == 'function';
+    return typeof feature == Types.FUNCTION;
 }
 function isArray(arr) {
     return Array.isArray(arr);
@@ -669,33 +1066,21 @@ function isArrayEmpty(arr) {
         return true;
     return false;
 }
-function findItem(arr, value) {
-    return arr.indexOf(value) !== -1;
+function isEvent(exp) {
+    return RegExp.EVENT_EXP.test(exp);
 }
 function isFunction(fn) {
     if (fn == undefined)
         return false;
-    if (typeof fn !== "function")
+    if (typeof fn !== Types.FUNCTION)
         return false;
     return true;
 }
+function isString(exp) {
+    return typeof exp === Types.STRING;
+}
 function isObject(exp) {
-    return typeof exp === "object";
-}
-function toInitialUpperCase(string) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
-}
-function defineProp(obj, prop, getter, setter) {
-    var descriptor = {
-        enumerable: false,
-        configurable: true,
-        set: setter,
-        get: getter
-    };
-    Object.defineProperty(obj, prop, descriptor);
-}
-function getKeys(obj) {
-    return Object.keys(obj);
+    return typeof exp === Types.OBJECT;
 }
 function each(obj, fn, context) {
     if (context === void 0) { context = null; }
@@ -764,46 +1149,54 @@ function merge(obj, obj2) {
         }
     }
 }
-
-/**
- * MultipleKeyObject
- *
- * Provides a way to set
- * values with multiple keys.
- *
- */
-var MultipleKeyObject$$1 = (function () {
-    function MultipleKeyObject$$1() {
-        this.container = {};
-    }
-    MultipleKeyObject$$1.prototype.set = function (keyGroup, value) {
-        var masterKey = keyGroup[0];
-        for (var i = 0, len = keyGroup.length; i < len; i++) {
-            var key = keyGroup[i];
-            if (this.has(key)) {
-                return this.container[key] = value;
-            }
-            if (key) {
-                defineProp(this.container, key, function getter() {
-                    return this["$" + masterKey];
-                }, function setter(v) {
-                    return this["$" + masterKey] = v;
-                });
-            }
-        }
-        return this.container[masterKey] = value;
+function findItem(arr, value) {
+    return arr.indexOf(value) !== -1;
+}
+function toString(exp) {
+    return exp + "";
+}
+function formatEvent(eventName) {
+    return eventName.slice(2).toLowerCase();
+}
+function toInitialUpperCase(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+function defineProp(obj, prop, getter, setter) {
+    var descriptor = {
+        enumerable: false,
+        configurable: true,
+        set: setter,
+        get: getter
     };
-    MultipleKeyObject$$1.prototype.has = function (key) {
-        return this.container.hasOwnProperty(key);
-    };
-    MultipleKeyObject$$1.prototype.get = function (key) {
-        return this.container[key];
-    };
-    return MultipleKeyObject$$1;
-}());
+    Object.defineProperty(obj, prop, descriptor);
+}
+function getKeys(obj) {
+    return Object.keys(obj);
+}
 
 // Base
 // Services
+
+var Router = (function () {
+    function Router() {
+    }
+    Router.prototype.renderRoute = function (routeName) {
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            args[_i - 1] = arguments[_i];
+        }
+        var controller, route, cachedRoutes, container = Vessel$$1.$container, metadataManager = container.get('@metadata_manager');
+        cachedRoutes = metadataManager.getRawData('cached_routes');
+        route = cachedRoutes.get(routeName);
+        controller = container.loadModule(route.context.constructor);
+        if (!route) {
+            throw new TypeError("Cannot render non-existent route: '" + routeName + "'.");
+        }
+        return (_a = route.bound).call.apply(_a, [controller].concat(args));
+        var _a;
+    };
+    return Router;
+}());
 
 var RouterBoot = (function (_super) {
     __extends(RouterBoot, _super);
@@ -1042,14 +1435,15 @@ var TodoController = (function (_super) {
     }
     TodoController.prototype.indexTodo = function () {
     };
-    TodoController.prototype.editTodo = function () {
+    TodoController.prototype.editTodo = function (id) {
+        this.render('view.todo', { id: id });
     };
     TodoController.prototype.createTodo = function () {
     };
     return TodoController;
 }(Controller$$1));
 __decorate([
-    get('collection.todos')
+    get('collection.todo')
 ], TodoController.prototype, "collection", void 0);
 __decorate([
     route('todo_index', '/')
@@ -1071,6 +1465,46 @@ var FifthCollection = (function (_super) {
     return FifthCollection;
 }(Collection$$1));
 
+var TodoView = (function (_super) {
+    __extends(TodoView, _super);
+    function TodoView() {
+        var _this = _super.call(this) || this;
+        _this.parent = '#todo-root';
+        _this.onRefresh = _this.onRefresh.bind(_this);
+        return _this;
+    }
+    TodoView.prototype.onRefresh = function () {
+        this.renderRoute('todo_edit', ++this.state.id);
+    };
+    TodoView.prototype.render = function () {
+        var div, p, i, button, input, self = this;
+        div = this.create('div')
+            .set({
+            'class': 'todo-class'
+        })
+            .css({
+            'color': 'red'
+        });
+        p = this.create('p')
+            .text("I'm the todo id ")
+            .appendTo(div);
+        i = this.create('i')
+            .text(this.state.id)
+            .appendTo(p);
+        input = this.create('input')
+            .set({
+            'id': 'input'
+        })
+            .appendTo(div);
+        button = this.create('button')
+            .text("Refresh")
+            .click(self.onRefresh)
+            .appendTo(div);
+        return div;
+    };
+    return TodoView;
+}(View$$1));
+
 var modules = {
     models: {
         'model.todo': TodoModel,
@@ -1085,7 +1519,9 @@ var modules = {
         'collection.fourth': FourthCollection,
         'collection.fifth': FifthCollection
     },
-    views: {}
+    views: {
+        'view.todo': TodoView
+    }
 };
 
 var App = (function (_super) {
@@ -1098,7 +1534,8 @@ var App = (function (_super) {
     };
     App.prototype.registerPackages = function () {
         return [
-            new RouterBoot()
+            new RouterBoot(),
+            new VirtualDOMBoot()
         ];
     };
     App.prototype.getGlobalName = function () {
