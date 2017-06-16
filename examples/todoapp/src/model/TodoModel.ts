@@ -1,8 +1,12 @@
 import { Model as BaseModel } from '@vessel/core';
-import { attr, validate } from '@vessel/decorators';
+import { attr, identifier, validate } from '@vessel/decorators';
 import { ModelInterface } from '@vessel/types';
 
 export class TodoModel extends BaseModel implements ModelInterface {
+
+    @identifier
+    @attr
+    public id;
 
     @attr
     public author;
@@ -12,6 +16,16 @@ export class TodoModel extends BaseModel implements ModelInterface {
 
     @attr
     public date;
+
+    getId() {
+        return this.attr.id;
+    }
+
+    setId(value) {
+        this.attr.id = value;
+
+        return this
+    }
 
 
     getAuthor() {
@@ -30,6 +44,8 @@ export class TodoModel extends BaseModel implements ModelInterface {
     )
     setAuthor(value) {
         this.attr.author = value;
+
+        return this;
     }
 
     getBody() {
@@ -47,6 +63,8 @@ export class TodoModel extends BaseModel implements ModelInterface {
     )
     setBody(value) {
         this.attr.body = value;
+
+        return this;
     }
 
 }
