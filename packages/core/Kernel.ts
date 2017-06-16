@@ -17,12 +17,13 @@ export class Kernel {
     }
 
     public boot() {
-        this.setGlobals();
-        this.init();
+        this.setGlobals()
+            .init();
     }
 
     public setGlobals() {
         window[this.app.getGlobalName()] = this.app;
+        return this;
     }
 
     get container() {
@@ -31,6 +32,7 @@ export class Kernel {
 
     private setAppContainer(container) {
         this.app.container = container;
+        return this;
     }
 
     private registerDependencies(container) {
@@ -41,7 +43,7 @@ export class Kernel {
 
     private bootPackages() {
         let bootPackages = this.app.registerPackages();
-        this.loadPackages([bootPackages]);
+        return this.loadPackages([bootPackages]);
     }
 
     private loadPackages(arr) {
@@ -51,8 +53,8 @@ export class Kernel {
            each(pkgs, function(pkg){
                pkg.register(container);
                pkg.setup(namespace, container);
-           }, this);
-        }, this);
+           });
+        });
         return this;
     }
 
@@ -66,9 +68,10 @@ export class Kernel {
         }
 
         this.registerDependencies(container)
-            .setAppContainer(container);
+            .setAppContainer(container)
+            .bootPackages();
 
-        this.bootPackages();
+        return this;
     }
 
 }
