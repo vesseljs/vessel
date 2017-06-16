@@ -10,8 +10,8 @@
     "lib": ["es6", "dom"],
     "paths": {
       "@vessel/core": ["core/"],
-      "@vessel/decorators": ["decorators/*"],
-      "@vessel/dom": ["dom/*"],
+      "@vessel/decorators": ["decorators/"],
+      "@vessel/dom": ["dom/"],
       "@vessel/router": ["router/*"],
       "@vessel/vessel-cli": ["vessel-cli/*"],
       "@vessel/types/*": ["types/*"]
