@@ -74,6 +74,15 @@ export class MetadataManager {
         return this;
     }
 
+    public getIdentifier(className) {
+        return this.retrieve(className, Metadata.MODEL_IDENTIFIER_KEY);
+    }
+
+    public setIdentifier(className, attrName) {
+        this.loadClass(className)[Metadata.MODEL_IDENTIFIER_KEY] = attrName;
+        return this;
+    }
+
     /**
      * Setter for add any kind of metadata,
      * so any dev can use decorators
