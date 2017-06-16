@@ -6,3 +6,5 @@ Vessel is javascript _(Typescript)_ client side framework. Which structures your
 
 
 **Documentation: v1.0** _(work in progress)_
+
+## Installation
