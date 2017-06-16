@@ -1,13 +1,15 @@
-import { Vessel } from '@vessel/core';
+import { Vessel, BaseTypes } from '@vessel/core';
 
 export class Controller extends Vessel {
 
-    public render() {
+    protected _type = BaseTypes.CONTROLLER;
 
+    protected render(viewName, renderData) {
+      return this.get('@vdom').render(viewName, renderData);
     }
 
-    public renderRoute() {
-
+    protected renderRoute(routeName, ...args) {
+        return this.get('@router').renderRoute(routeName, ...args);
     }
 
 

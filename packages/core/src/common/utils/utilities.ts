@@ -1,3 +1,7 @@
+import { Types } from './Types';
+
+import { RegExp } from './RegExp';
+
 export function getDate() {
 	console.log('Get date!');
 }
@@ -6,51 +10,38 @@ export function checkDate() {
 	console.log('checkDate!');
 }
 
-export function isSupported( feature ) {
-	return typeof feature == 'function';
+export function isSupported(feature) {
+	return typeof feature == Types.FUNCTION;
 }
 
-export function isArray( arr ) {
+export function isArray(arr) {
     return Array.isArray(arr);
 }
 
-export function isArrayEmpty( arr ) {
+export function isArrayEmpty(arr) {
     if (!arr) return true;
     if (arr.length === 0) return true;
     return false;
 }
 
-export function findItem( arr, value ) {
-    return arr.indexOf(value) !== -1
+export function isEvent(exp) {
+    return RegExp.EVENT_EXP.test(exp);
 }
 
-export function isFunction( fn ) {
+export function isFunction(fn) {
     if ( fn == undefined ) return false;
-    if ( typeof fn !== "function" ) return false;
+    if ( typeof fn !== Types.FUNCTION ) return false;
     return true;
 }
 
+export function isString(exp: any) {
+    return typeof exp === Types.STRING;
+}
+
 export function isObject(exp: any) {
-    return typeof exp === "object";
+    return typeof exp === Types.OBJECT;
 }
 
-export function toInitialUpperCase( string ) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
-}
-
-export function defineProp( obj, prop, getter, setter ) {
-    let descriptor = {
-        enumerable: false,
-        configurable: true,
-        set: setter,
-        get: getter
-    }
-    Object.defineProperty( obj, prop, descriptor );
-}
-
-export function getKeys(obj) {
-    return Object.keys(obj);
-}
 
 export function each(obj, fn, context=null) {
     var i, len, keys, item, result;
@@ -82,7 +73,7 @@ export function matchPair(obj, attrs) {
 }
 
 export function map(arr, fn, context=null) {
-    var newArr = [], result;
+    let newArr = [], result;
     each(arr, function(item, index) {
         result = fn.call(context, item, index);
         if ( result ) newArr.push(result);
@@ -91,7 +82,7 @@ export function map(arr, fn, context=null) {
 }
 
 export function filter(obj, fn, context=null) {
-    var matches = [];
+    let matches = [];
     each(obj, function(item, index) {
         if (fn.call(context, item, index, obj))
             matches.push(item);
@@ -100,7 +91,7 @@ export function filter(obj, fn, context=null) {
 }
 
 export function filterOne(arr, fn, context=null) {
-    var i, item, len = arr.length;
+    let i, item, len = arr.length;
     for (i = 0; i < len; i++) {
         if (fn.call(context, item = arr[i], i, arr))
             return item;
@@ -117,4 +108,34 @@ export function merge(obj, obj2) {
             obj[prop] = obj2[prop];
         }
     }
+}
+
+export function findItem(arr, value) {
+    return arr.indexOf(value) !== -1
+}
+
+export function toString(exp) {
+    return exp + "";
+}
+
+export function formatEvent(eventName) {
+    return eventName.slice(2).toLowerCase();
+}
+
+export function toInitialUpperCase(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+export function defineProp(obj, prop, getter, setter) {
+    let descriptor = {
+        enumerable: false,
+        configurable: true,
+        set: setter,
+        get: getter
+    };
+    Object.defineProperty(obj, prop, descriptor);
+}
+
+export function getKeys(obj) {
+    return Object.keys(obj);
 }
