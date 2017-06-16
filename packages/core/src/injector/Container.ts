@@ -31,13 +31,17 @@ export class Container {
     public registerSingleModule(name, module) {
 
         if (!module) {
-            throw TypeError("Cannot registerSingleModule(name, module). 'module' was " + module);
+            throw TypeError("Cannot registerSingleModule(), 'module' was " + module);
         }
 
         let modules = this.modules;
 
         if (!modules.hasOwnProperty("@")) {
             modules["@"] = {}
+        }
+
+        if (modules["@"].hasOwnProperty(name)) {
+            throw TypeError("Cannot registerSingleModule(), '" + name + "' is already registered");
         }
 
         modules["@"][name] = module;
@@ -50,6 +54,25 @@ export class Container {
      */
     public get(name) {
         return this.resolveDependencies(name);
+    }
+
+    /**
+     * Loads a module by its constructor,
+     * if it's already instantiated it will
+     * return the instance, otherwise it will
+     * instantiate and then return it.
+     *
+     * It can be used to get an instance directly
+     * without its name but it will not resolve
+     * its @get() dependencies.
+     */
+    public loadModule(constructor) {
+        let cache = this.cache;
+
+        if (!cache.has(constructor))
+            cache.set(constructor, new constructor());
+
+        return cache.get(constructor);
     }
 
     /**
@@ -120,9 +143,9 @@ export class Container {
         let depConstructor = this.findModuleByName(depName);
 
         if (!depConstructor) {
-            throw new TypeError("Attempt to inject " +
-                "non-existent dependency: '" +
-                depName +"'. Did you register it?");
+            throw new TypeError("Injection error on '"+topParent.name+
+                "': Attempt to inject non-existent dependency: '"
+                + depName + "'. Did you register it?");
         }
 
         if (this.isCircular(depName, parents, topParent.name)) {
@@ -157,21 +180,6 @@ export class Container {
             let topDepInstance = this.loadModule(constructor),
                 depInstance = this.loadModule(depConstructor);
         return topDepInstance[attrName] = depInstance;
-    }
-
-    /**
-     * Loads a module by its constructor,
-     * if it's already instantiated it will
-     * return the instance, otherwise it will
-     * instantiate and then return it.
-     */
-    private loadModule(constructor) {
-        let cache = this.cache;
-
-        if (!cache.has(constructor))
-            cache.set(constructor, new constructor());
-
-        return cache.get(constructor);
     }
 
     /**
