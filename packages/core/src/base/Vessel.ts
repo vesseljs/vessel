@@ -1,11 +1,14 @@
-import { ContainerLoader, Container } from "@vessel/core";
+import {ContainerLoader, Container, BaseTypes} from "@vessel/core";
+
 /**
  * Vessel's Main class.
  *
- * Models, views, collections
- * will inherit this class.
+ * Base classes will inherit
+ * this class.
  */
 export class Vessel {
+
+    protected _type = BaseTypes.VESSEL;
 
     /**
      * Container
@@ -30,6 +33,10 @@ export class Vessel {
 
     protected getClassName(): string {
         return this.constructor.name;
+    }
+
+    protected getType() {
+        return this._type;
     }
 
     protected get(module: string): any {

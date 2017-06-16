@@ -1,11 +1,14 @@
-import { Vessel, isArray, filterOne, filter, matchPair, map } from '@vessel/core';
+import { Vessel, isArray, filterOne, filter, matchPair, map, BaseTypes } from '@vessel/core';
 import { ModelInterface } from '@vessel/types/definitions';
 
 let prefixAttr = 'attr';
 
 export abstract class Collection extends Vessel {
 
+    protected _type = BaseTypes.COLLECTION;
+
     public collection: ModelInterface[];
+
     public model;
 
     public add(...args) {
