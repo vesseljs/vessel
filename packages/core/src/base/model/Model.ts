@@ -1,5 +1,5 @@
 import { AttribProxy } from './Proxy';
-import { Vessel, isArrayEmpty, each, toInitialUpperCase } from '@vessel/core';
+import { Vessel, isArrayEmpty, each, toInitialUpperCase, BaseTypes } from '@vessel/core';
 import { ModelInterface } from '@vessel/types/definitions';
 
 /**
@@ -7,10 +7,18 @@ import { ModelInterface } from '@vessel/types/definitions';
  */
 export class Model extends Vessel implements ModelInterface {
 
+    protected _type = BaseTypes.MODEL;
+
+    /**
+     * Stores the bridge service.
+     */
+    protected bridge: string;
+
     /**
      * Stores the attribute proxy.
      */
     protected attr: any;
+
 
     public constructor() {
         super();
@@ -31,6 +39,33 @@ export class Model extends Vessel implements ModelInterface {
         return this;
     }
 
+    public save() {
+        let bridge = this.getBridge();
+        if (this.isNew()) {
+            return bridge.post(this);
+        }
+        return bridge.put(this);
+    }
+
+    public fetch() {
+        return this.getBridge().get(this);
+    }
+
+    public remove() {
+        return this.getBridge().remove(this);
+    }
+
+    public getIdentifier() {
+        let attrName = this
+            .get('@metadata_manager')
+            .getIdentifier(this.getClassName());
+        return this[attrName];
+    }
+
+    protected isNew() {
+        return !this.getIdentifier();
+    }
+
     /**
      * Instances the attribute proxy, it adds each
      * attribute defined in the model with the
@@ -39,9 +74,9 @@ export class Model extends Vessel implements ModelInterface {
      */
     protected _createProxy() {
         let attrs,
-            metadaManager = this.get('@metadata_manager');
+            metadataManager = this.get('@metadata_manager');
 
-        attrs = metadaManager.getAttributes(this.getClassName());
+        attrs = metadataManager.getAttributes(this.getClassName());
 
         if ( isArrayEmpty(attrs) ) {
             throw TypeError("Attempt to create a proxy" +
@@ -73,12 +108,8 @@ export class Model extends Vessel implements ModelInterface {
         return validationFn(value);
     }
 
-    public save() {
-
-    }
-
-    public fetch() {
-
+    protected getBridge() {
+        return this.get(this.bridge);
     }
 
 }

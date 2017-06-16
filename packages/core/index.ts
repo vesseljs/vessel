@@ -8,22 +8,32 @@ export { AbstractPackageBoot } from './src/boot/package/AbstractPackageBoot';
 
 export { Kernel } from './Kernel';
 
+export { BaseTypes } from './src/base/BaseTypes';
+
 
 export { Vessel } from './src/base/Vessel';
 
-export { Http } from './src/services/http/Http';
-export { Storage } from './src/services/storage/Storage';
+export { Bridge } from './src/services/Bridge';
+export { RemoteService } from './src/services/RemoteService';
+export { Service } from './src/services/Service';
+export { HttpBridge } from './src/services/http/HttpBridge';
+export { StorageBridge } from './src/services/storage/StorageBridge';
+
 export { Model } from './src/base/model/Model';
 export { Controller } from './src/base/controller/Controller';
 export { View } from './src/base/view/View';
 export { Collection } from './src/base/collection/Collection';
 
+
 // Boot
 export { BaseApp } from './src/boot/app/App';
 
 // Common
-export  *  from './src/common/utils/utilities';
+export { Types } from './src/common/utils/Types';
+export { RegExp } from './src/common/utils/RegExp';
 export { MultipleKeyObject } from './src/common/utils/MultipleKeyObject';
+export  *  from './src/common/utils/utilities';
+
 
 // Services
 
