@@ -1,10 +1,12 @@
 import { RouterBoot } from '@vessel/router';
+import { VirtualDOMBoot } from '@vessel/dom';
 
 import { modules } from './config/modules';
 import { BaseApp } from '@vessel/core';
 import { bootable } from '@vessel/decorators';
 
 import { MultipleKeyObject } from '@vessel/core';
+
 
 @bootable
 class App extends BaseApp {
@@ -16,7 +18,8 @@ class App extends BaseApp {
 
     public registerPackages() {
         return [
-            new RouterBoot()
+            new RouterBoot(),
+            new VirtualDOMBoot()
         ];
     }
 

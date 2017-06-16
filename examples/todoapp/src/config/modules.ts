@@ -5,6 +5,7 @@ import {TestCollection} from "../collection/TestCollection";
 import {FourthCollection} from "../collection/FourthCollection";
 import {TodoController} from "../controller/TodoController";
 import {FifthCollection} from "../collection/FifthCollection";
+import {TodoView} from "../view/TodoView";
 
 export const modules = {
 
@@ -26,7 +27,7 @@ export const modules = {
 
 
     views: {
-
+        'view.todo': TodoView
     }
 
 };
