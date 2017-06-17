@@ -7,14 +7,35 @@
     "noImplicitAny": false,
     "sourceMap": true,
     "experimentalDecorators": true,
-    "lib": ["es6", "dom"],
+    "lib": [
+      "es6",
+      "dom",
+      "es7",
+      "es5",
+      "es2015.promise",
+      "es2015.generator"
+    ],
     "paths": {
-      "@vessel/core": ["core/"],
-      "@vessel/decorators": ["decorators/"],
-      "@vessel/dom": ["dom/"],
-      "@vessel/router": ["router/*"],
-      "@vessel/vessel-cli": ["vessel-cli/*"],
-      "@vessel/types/*": ["types/*"]
+      "@vessel/core": [
+        "core/"
+      ],
+      "@vessel/decorators": [
+        "decorators/"
+      ],
+      "@vessel/dom": [
+        "dom/"
+      ],
+      "@vessel/router": [
+        "router/*"
+      ],
+      "@vessel/vessel-cli": [
+        "vessel-cli/*"
+      ],
+      "@vessel/types/*": [
+        "types/*"
+      ]
     }
   }
+
+
 }

@@ -1,7 +1,7 @@
 const 
 	gulp = require('gulp'),
 	rollup = require('rollup'),
-	rollupTypeScript = require('rollup-plugin-typescript'),
+	rollupTypeScript = require('@alexlur/rollup-plugin-typescript'),
 	typescript = require('typescript'),
     uglify = require('gulp-uglify'),
     pump = require('pump'),

@@ -1,11 +1,11 @@
-import { Bridge as BaseBridge } from '@vessel/core';
+import { HttpBridge } from '@vessel/core';
 
-export class TodoService extends BaseBridge {
+export class TodoService extends HttpBridge {
 
-    protected endPoint = '/todos';
+    protected endPoint = '/api/public/v1/user';
 
     protected getResponse(response) {
-        return JSON.parse(response.data);
+        return JSON.parse(response);
     }
 
     public create(jsonResponse, model) {
@@ -14,7 +14,7 @@ export class TodoService extends BaseBridge {
     }
 
     public read(jsonResponse, obj) {
-        return obj;
+        return jsonResponse;
     }
 
     public update(jsonResponse, model) {

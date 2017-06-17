@@ -30,7 +30,7 @@ export function validate(validationFn) {
         let boundFn = descriptor.value;
         descriptor.value = function setAttribute(value) {
             if ( this._validate(value, validationFn) ) {
-                boundFn.call(this, value);
+                return boundFn.call(this, value);
             }
         };
         return descriptor;

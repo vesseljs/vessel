@@ -17,6 +17,9 @@ export class TodoModel extends BaseModel implements ModelInterface {
     @attr
     public date;
 
+    protected bridge = 'service.todo';
+
+
     getId() {
         return this.attr.id;
     }

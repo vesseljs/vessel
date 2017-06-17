@@ -1,14 +1,79 @@
+/*! *****************************************************************************
+Copyright (c) Microsoft Corporation. All rights reserved.
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License. You may obtain a copy of the
+License at http://www.apache.org/licenses/LICENSE-2.0
+
+THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
+WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
+MERCHANTABLITY OR NON-INFRINGEMENT.
+
+See the Apache Version 2.0 License for specific language governing permissions
+and limitations under the License.
+***************************************************************************** */
+/* global Reflect, Promise */
+
+var extendStatics = Object.setPrototypeOf ||
+    ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+    function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+
 function __extends(d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    extendStatics(d, b);
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 }
+
+
+
+
 
 function __decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
+}
+
+
+
+
+
+function __awaiter(thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator.throw(value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+}
+
+function __generator(thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (_) try {
+            if (f = 1, y && (t = y[op[0] & 2 ? "return" : op[0] ? "throw" : "next"]) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [0, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
 }
 
 var Metadata = (function () {
@@ -416,6 +481,11 @@ var Kernel$$1 = (function () {
         });
         return this;
     };
+    Kernel$$1.prototype.registerAppConfig = function () {
+        var config = this.app.registerConfig();
+        return this.container.get('@metadata_manager')
+            .addRawData('app_config', config);
+    };
     Kernel$$1.prototype.init = function () {
         var container = this.container;
         if (!container) {
@@ -424,7 +494,8 @@ var Kernel$$1 = (function () {
         }
         this.registerDependencies(container)
             .setAppContainer(container)
-            .bootPackages();
+            .bootPackages()
+            .registerAppConfig();
         return this;
     };
     return Kernel$$1;
@@ -440,14 +511,17 @@ BaseTypes.MODEL = 'model';
 BaseTypes.CONTROLLER = 'controller';
 BaseTypes.COLLECTION = 'collection';
 BaseTypes.VIEW = 'view';
-BaseTypes.BRIDGE = 'bridge';
 BaseTypes.SERVICE = 'service';
+BaseTypes.REMOTE_SERVICE = 'remote_service';
+BaseTypes.BRIDGE = 'bridge';
+BaseTypes.HTTP_BRIDGE = 'http_bridge';
+BaseTypes.STORAGE_BRIDGE = 'storage_bridge';
 
 /**
  * Vessel's Main class.
  *
- * Models, views, collections
- * will inherit this class.
+ * Base classes will inherit
+ * this class.
  */
 var Vessel$$1 = (function () {
     function Vessel$$1() {
@@ -487,6 +561,154 @@ var Vessel$$1 = (function () {
  *
  */
 Vessel$$1.$container = new ContainerLoader$$1().boot();
+
+var Service$$1 = (function (_super) {
+    __extends(Service$$1, _super);
+    function Service$$1() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this._type = BaseTypes.SERVICE;
+        return _this;
+    }
+    return Service$$1;
+}(Vessel$$1));
+
+var HttpMethods = (function () {
+    function HttpMethods() {
+    }
+    return HttpMethods;
+}());
+HttpMethods.GET = 'GET';
+
+var RemoteService$$1 = (function (_super) {
+    __extends(RemoteService$$1, _super);
+    function RemoteService$$1() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this._type = BaseTypes.REMOTE_SERVICE;
+        return _this;
+    }
+    RemoteService$$1.prototype.getBaseUrl = function () {
+        var appConfig = this.get('@metadata_manager')
+            .getRawData('app_config');
+        return appConfig.baseUrl;
+    };
+    RemoteService$$1.prototype.newAjaxRequest = function (url, method) {
+        return new Promise(function (resolve, reject) {
+            var request = new XMLHttpRequest();
+            request.onload = function () {
+                if (request.status === 200) {
+                    resolve(request.response);
+                }
+                else {
+                    reject(request.statusText);
+                }
+            };
+            request.onerror = function () {
+                reject("Network error.");
+            };
+            request.open(method, url);
+            request.send();
+        });
+    };
+    RemoteService$$1.prototype.getRequest = function (url) {
+        return this.newAjaxRequest(url, HttpMethods.GET);
+    };
+    RemoteService$$1.prototype.postRequest = function (url) {
+    };
+    RemoteService$$1.prototype.putRequest = function (url) {
+    };
+    RemoteService$$1.prototype.removeRequest = function (url) {
+    };
+    return RemoteService$$1;
+}(Service$$1));
+
+var Bridge$$1 = (function (_super) {
+    __extends(Bridge$$1, _super);
+    function Bridge$$1() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this._type = BaseTypes.BRIDGE;
+        return _this;
+    }
+    return Bridge$$1;
+}(RemoteService$$1));
+
+var HttpBridge$$1 = (function (_super) {
+    __extends(HttpBridge$$1, _super);
+    function HttpBridge$$1() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this._type = BaseTypes.HTTP_BRIDGE;
+        return _this;
+    }
+    HttpBridge$$1.prototype.createRequest = function (obj) {
+        return this.bridgeRequest(obj, this.postRequest, this.create);
+    };
+    HttpBridge$$1.prototype.readRequest = function (obj) {
+        return this.bridgeRequest(obj, this.getRequest, this.read);
+    };
+    HttpBridge$$1.prototype.updateRequest = function (obj) {
+        return this.bridgeRequest(obj, this.putRequest, this.update);
+    };
+    HttpBridge$$1.prototype.destroyRequest = function (obj) {
+        return this.bridgeRequest(obj, this.removeRequest, this.destroy);
+    };
+    HttpBridge$$1.prototype.getPartialUrl = function () {
+        return this.getBaseUrl() + this.endPoint;
+    };
+    HttpBridge$$1.prototype.getObjUrl = function (obj) {
+        if (obj.getType() === BaseTypes.MODEL) {
+            return this.getPartialUrl() + '/' + this.extractIdentifier(obj);
+        }
+        else if (obj.getType() === BaseTypes.COLLECTION) {
+            return this.getPartialUrl();
+        }
+        else {
+            throw new TypeError('Bridges can only be used with Model and ' +
+                'Collection classes');
+        }
+    };
+    HttpBridge$$1.prototype.getUrl = function () {
+        return void 0;
+    };
+    HttpBridge$$1.prototype.getFullUrl = function (obj) {
+        var customUrl = this.getUrl();
+        return customUrl ? customUrl : this.getObjUrl(obj);
+    };
+    HttpBridge$$1.prototype.extractIdentifier = function (obj) {
+        var id = obj.getIdentifier();
+        if (!this.isValidIdentifier(id)) {
+            throw new TypeError('Bridge: Invalid identifier ' +
+                id + ' (' + typeof id + ').');
+        }
+        return id;
+    };
+    HttpBridge$$1.prototype.isValidIdentifier = function (exp) {
+        return typeof exp === Types.STRING ||
+            typeof exp === Types.NUMBER;
+    };
+    HttpBridge$$1.prototype.bridgeRequest = function (obj, requestCb, processCb) {
+        var self = this, url = this.getFullUrl(obj), processedData, request, data;
+        return new Promise(function (resolve, reject) {
+            request = requestCb.call(self, url);
+            request.then(function onSuccess(response) {
+                data = self.getResponse(response);
+                processedData = processCb.call(self, data, obj);
+                resolve(processedData);
+            }, function onError(response) {
+                reject(response);
+            });
+        });
+    };
+    return HttpBridge$$1;
+}(Bridge$$1));
+
+var StorageBridge$$1 = (function (_super) {
+    __extends(StorageBridge$$1, _super);
+    function StorageBridge$$1() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this._type = BaseTypes.STORAGE_BRIDGE;
+        return _this;
+    }
+    return StorageBridge$$1;
+}(Bridge$$1));
 
 /**
  * Attribute proxy.
@@ -549,21 +771,21 @@ var Model$$1 = (function (_super) {
     Model$$1.prototype.save = function () {
         var bridge = this.getBridge();
         if (this.isNew()) {
-            return bridge.post(this);
+            return bridge.createRequest(this);
         }
-        return bridge.put(this);
+        return bridge.updateRequest(this);
     };
     Model$$1.prototype.fetch = function () {
-        return this.getBridge().get(this);
+        return this.getBridge().readRequest(this);
     };
     Model$$1.prototype.remove = function () {
-        return this.getBridge().remove(this);
+        return this.getBridge().destroyRequest(this);
     };
     Model$$1.prototype.getIdentifier = function () {
         var attrName = this
             .get('@metadata_manager')
             .getIdentifier(this.getClassName());
-        return this[attrName];
+        return this.attr[attrName];
     };
     Model$$1.prototype.isNew = function () {
         return !this.getIdentifier();
@@ -604,7 +826,12 @@ var Model$$1 = (function (_super) {
         return validationFn(value);
     };
     Model$$1.prototype.getBridge = function () {
-        return this.get(this._bridge);
+        var bridge = this.bridge;
+        if (!bridge) {
+            throw new TypeError("Bridge does not exist. Define a bridge " +
+                "for " + this.getClassName());
+        }
+        return this.get(bridge);
     };
     return Model$$1;
 }(Vessel$$1));
@@ -946,6 +1173,11 @@ var Collection$$1 = (function (_super) {
             }
         }
     };
+    Collection$$1.prototype.create = function () {
+    };
+    Collection$$1.prototype.fetch = function () {
+        return this.getBridge().readRequest(this);
+    };
     Collection$$1.prototype.find = function (attrs) {
         return filterOne(this.getCollection(), function (item) {
             return matchPair(item[prefixAttr], attrs);
@@ -967,10 +1199,6 @@ var Collection$$1 = (function (_super) {
     };
     Collection$$1.prototype.removeById = function () {
     };
-    Collection$$1.prototype.save = function () {
-    };
-    Collection$$1.prototype.fetch = function () {
-    };
     Collection$$1.prototype.willRetrieve = function () {
         return this;
     };
@@ -978,6 +1206,14 @@ var Collection$$1 = (function (_super) {
         var name, metadataManager = this.get('@metadata_manager');
         name = metadataManager.getCollection(this.getClassName());
         return this[name];
+    };
+    Collection$$1.prototype.getBridge = function () {
+        var bridge = this.bridge;
+        if (!bridge) {
+            throw new TypeError("Bridge does not exist. Define a bridge " +
+                "for " + this.getClassName());
+        }
+        return this.get(bridge);
     };
     return Collection$$1;
 }(Vessel$$1));
@@ -1175,6 +1411,7 @@ function getKeys(obj) {
 }
 
 // Base
+
 // Services
 
 var Router = (function () {
@@ -1232,6 +1469,10 @@ function route(routeName, routePath) {
     };
 }
 
+var app = {
+    baseUrl: 'http://mrtz.es'
+};
+
 function bootable(constructor) {
     var app = new constructor();
     new Kernel$$1(app).boot();
@@ -1270,6 +1511,23 @@ function get(depName) {
 function attr(proto, attrName) {
     var metadataManager = Vessel$$1.$container.get('@metadata_manager'), className = proto.getClassName();
     metadataManager.setAttribute(className, attrName);
+}
+
+/**
+ * Decorator: @attr
+ *
+ * Adds the name of the identifier attribute to
+ * the metadata manager.
+ *
+ * This will be used by the framework so it knows what
+ * are the model identifier.
+ *
+ * @param proto
+ * @param attrName
+ */
+function identifier(proto, attrName) {
+    var metadataManager = Vessel$$1.$container.get('@metadata_manager'), className = proto.getClassName();
+    metadataManager.setIdentifier(className, attrName);
 }
 
 /**
@@ -1321,7 +1579,7 @@ function validate(validationFn) {
         var boundFn = descriptor.value;
         descriptor.value = function setAttribute(value) {
             if (this._validate(value, validationFn)) {
-                boundFn.call(this, value);
+                return boundFn.call(this, value);
             }
         };
         return descriptor;
@@ -1331,22 +1589,37 @@ function validate(validationFn) {
 var TodoModel = (function (_super) {
     __extends(TodoModel, _super);
     function TodoModel() {
-        return _super !== null && _super.apply(this, arguments) || this;
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.bridge = 'service.todo';
+        return _this;
     }
+    TodoModel.prototype.getId = function () {
+        return this.attr.id;
+    };
+    TodoModel.prototype.setId = function (value) {
+        this.attr.id = value;
+        return this;
+    };
     TodoModel.prototype.getAuthor = function () {
         return this.attr.author;
     };
     TodoModel.prototype.setAuthor = function (value) {
         this.attr.author = value;
+        return this;
     };
     TodoModel.prototype.getBody = function () {
         return this.attr.body;
     };
     TodoModel.prototype.setBody = function (value) {
         this.attr.body = value;
+        return this;
     };
     return TodoModel;
 }(Model$$1));
+__decorate([
+    identifier,
+    attr
+], TodoModel.prototype, "id", void 0);
 __decorate([
     attr
 ], TodoModel.prototype, "author", void 0);
@@ -1376,10 +1649,51 @@ __decorate([
     })
 ], TodoModel.prototype, "setBody", null);
 
+var TodoController = (function (_super) {
+    __extends(TodoController, _super);
+    function TodoController() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    TodoController.prototype.indexTodo = function () {
+    };
+    TodoController.prototype.editTodo = function (id) {
+        return __awaiter(this, void 0, void 0, function () {
+            var todo, response;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        todo = new TodoModel();
+                        return [4 /*yield*/, this.collection.fetch()];
+                    case 1:
+                        response = _a.sent();
+                        this.render('view.todo', { id: response.description });
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
+    TodoController.prototype.createTodo = function () {
+    };
+    return TodoController;
+}(Controller$$1));
+__decorate([
+    get('collection.todo')
+], TodoController.prototype, "collection", void 0);
+__decorate([
+    route('todo_index', '/')
+], TodoController.prototype, "indexTodo", null);
+__decorate([
+    route('todo_edit', '/edit/{id}')
+], TodoController.prototype, "editTodo", null);
+__decorate([
+    route('todo_create')
+], TodoController.prototype, "createTodo", null);
+
 var TodoCollection = (function (_super) {
     __extends(TodoCollection, _super);
     function TodoCollection() {
         var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.bridge = 'service.todo';
         _this.todos = [];
         _this.model = TodoModel;
         return _this;
@@ -1427,33 +1741,6 @@ var FourthCollection = (function (_super) {
     }
     return FourthCollection;
 }(Collection$$1));
-
-var TodoController = (function (_super) {
-    __extends(TodoController, _super);
-    function TodoController() {
-        return _super !== null && _super.apply(this, arguments) || this;
-    }
-    TodoController.prototype.indexTodo = function () {
-    };
-    TodoController.prototype.editTodo = function (id) {
-        this.render('view.todo', { id: id });
-    };
-    TodoController.prototype.createTodo = function () {
-    };
-    return TodoController;
-}(Controller$$1));
-__decorate([
-    get('collection.todo')
-], TodoController.prototype, "collection", void 0);
-__decorate([
-    route('todo_index', '/')
-], TodoController.prototype, "indexTodo", null);
-__decorate([
-    route('todo_edit', '/edit/{id}')
-], TodoController.prototype, "editTodo", null);
-__decorate([
-    route('todo_create')
-], TodoController.prototype, "createTodo", null);
 
 var FifthCollection = (function (_super) {
     __extends(FifthCollection, _super);
@@ -1505,6 +1792,32 @@ var TodoView = (function (_super) {
     return TodoView;
 }(View$$1));
 
+var TodoService = (function (_super) {
+    __extends(TodoService, _super);
+    function TodoService() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.endPoint = '/api/public/v1/user';
+        return _this;
+    }
+    TodoService.prototype.getResponse = function (response) {
+        return JSON.parse(response);
+    };
+    TodoService.prototype.create = function (jsonResponse, model) {
+        model.setId(jsonResponse.id);
+        return model;
+    };
+    TodoService.prototype.read = function (jsonResponse, obj) {
+        return jsonResponse;
+    };
+    TodoService.prototype.update = function (jsonResponse, model) {
+        return model;
+    };
+    TodoService.prototype.destroy = function (jsonResponse) {
+        return jsonResponse.id;
+    };
+    return TodoService;
+}(HttpBridge$$1));
+
 var modules = {
     models: {
         'model.todo': TodoModel,
@@ -1521,6 +1834,9 @@ var modules = {
     },
     views: {
         'view.todo': TodoView
+    },
+    services: {
+        'service.todo': TodoService
     }
 };
 
@@ -1529,6 +1845,9 @@ var App = (function (_super) {
     function App() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
+    App.prototype.registerConfig = function () {
+        return app;
+    };
     App.prototype.registerModules = function () {
         return modules;
     };

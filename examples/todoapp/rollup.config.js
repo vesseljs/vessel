@@ -1,4 +1,4 @@
-import typescriptPlugin from 'rollup-plugin-typescript';
+import typescriptPlugin from '@alexlur/rollup-plugin-typescript';
 import typescript from 'typescript';
 
 export default {

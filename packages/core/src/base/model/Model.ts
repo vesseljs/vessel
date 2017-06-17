@@ -42,24 +42,24 @@ export class Model extends Vessel implements ModelInterface {
     public save() {
         let bridge = this.getBridge();
         if (this.isNew()) {
-            return bridge.post(this);
+            return bridge.createRequest(this);
         }
-        return bridge.put(this);
+        return bridge.updateRequest(this);
     }
 
     public fetch() {
-        return this.getBridge().get(this);
+        return this.getBridge().readRequest(this);
     }
 
     public remove() {
-        return this.getBridge().remove(this);
+        return this.getBridge().destroyRequest(this);
     }
 
     public getIdentifier() {
         let attrName = this
             .get('@metadata_manager')
             .getIdentifier(this.getClassName());
-        return this[attrName];
+        return this.attr[attrName];
     }
 
     protected isNew() {
@@ -109,7 +109,13 @@ export class Model extends Vessel implements ModelInterface {
     }
 
     protected getBridge() {
-        return this.get(this.bridge);
+        let bridge = this.bridge;
+
+        if (!bridge) {
+            throw new TypeError("Bridge does not exist. Define a bridge " +
+                "for " + this.getClassName());
+        }
+        return this.get(bridge);
     }
 
 }

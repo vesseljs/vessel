@@ -6,6 +6,8 @@ import { TodoModel } from '../model/TodoModel';
 
 export class TodoCollection extends BaseCollection {
 
+    protected bridge = 'service.todo';
+
     @collection
     public todos = [];
 

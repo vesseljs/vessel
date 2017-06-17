@@ -11,6 +11,11 @@ export abstract class Collection extends Vessel {
 
     public model;
 
+    /**
+     * Stores the bridge service.
+     */
+    protected bridge: string;
+
     public add(...args) {
         let collection = this.getCollection(),
             Model = this.model;
@@ -25,6 +30,14 @@ export abstract class Collection extends Vessel {
                 }
             }
         }
+    }
+
+    public create() {
+
+    }
+
+    public fetch() {
+        return this.getBridge().readRequest(this);
     }
 
     public find(attrs) {
@@ -57,14 +70,6 @@ export abstract class Collection extends Vessel {
 
     }
 
-    public save() {
-
-    }
-
-    public fetch() {
-
-    }
-
     protected willRetrieve() {
         return this;
     }
@@ -76,6 +81,16 @@ export abstract class Collection extends Vessel {
          name = metadataManager.getCollection(this.getClassName());
 
         return this[name];
+    }
+
+    protected getBridge() {
+        let bridge = this.bridge;
+
+        if (!bridge) {
+            throw new TypeError("Bridge does not exist. Define a bridge " +
+                "for " + this.getClassName());
+        }
+        return this.get(bridge);
     }
 
 }

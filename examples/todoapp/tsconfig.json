@@ -6,8 +6,17 @@
         "moduleResolution": "node",
         "noImplicitAny": false,
         "sourceMap": true,
+        "noEmitHelpers": false,
         "outDir": "./dist",
         "experimentalDecorators": true,
-        "lib": ["es6", "dom"]
+        "lib": [
+            "es7",
+            "es6",
+            "es5",
+            "dom",
+            "es2015.promise",
+            "es2015.generator"
+        ]
     }
 }
+
