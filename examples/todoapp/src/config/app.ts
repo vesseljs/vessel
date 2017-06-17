@@ -1,4 +1,4 @@
 export const app = {
-    baseUrl: 'http://mrtz.es'
+    baseUrl: 'http://samples.openweathermap.org/data/2.5'
 
 };

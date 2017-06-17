@@ -1,6 +1,7 @@
 import { Service } from './Service';
-import { BaseTypes } from '@vessel/core';
+import { each, BaseTypes } from '@vessel/core';
 import { HttpMethods } from  './http/HttpMethods';
+import { Request } from "./http/Request";
 
 export class RemoteService extends Service {
 
@@ -12,15 +13,11 @@ export class RemoteService extends Service {
         return appConfig.baseUrl;
     }
 
-    protected getHeaders() {
+    protected newAjaxRequest(request: Request) {
+        let url = request.fullUrl,
+            method = request.getMethod(),
+            headers = request.getHeaders();
 
-    }
-
-    protected getParameters() {
-
-    }
-
-    protected newAjaxRequest(url, method) {
         return new Promise( (resolve, reject) => {
             let request = new XMLHttpRequest();
 
@@ -37,13 +34,18 @@ export class RemoteService extends Service {
             };
 
             request.open(method, url);
+
+            each(headers, function(header,value){
+               request.setRequestHeader(header, value);
+            });
+
             request.send();
 
         });
     }
 
-    protected getRequest(url: string) {
-        return this.newAjaxRequest(url, HttpMethods.GET);
+    protected getRequest(request: Request) {
+        return this.newAjaxRequest( request.setMethod(HttpMethods.GET) );
     }
 
     protected postRequest(url: string) {

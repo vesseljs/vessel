@@ -22,9 +22,17 @@ export class TodoController extends BaseController {
             .setAuthor('Peter')
             .setBody('This is a todo body!')*/
 
-        let response = await this.collection.fetch();
+        let response = await this.collection.fetch({
+            parameters: {
+                'q' : 'London',
+                'appid' : 'b1b15e88fa797225412429c1c50c122a1'
+            },
+            headers: {
+                'Allow-Control-Allow-Origin': '*'
+            }
+        });
 
-        this.render('view.todo', { id: response.description });
+        this.render('view.todo', { id: response.coord.lat });
     }
 
     @route('todo_create')

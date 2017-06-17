@@ -1,5 +1,6 @@
 import { Bridge } from '../Bridge';
 import { BaseTypes, Types } from '@vessel/core';
+import {Request} from "./Request";
 
 export abstract class HttpBridge extends Bridge {
 
@@ -19,20 +20,20 @@ export abstract class HttpBridge extends Bridge {
     public abstract destroy(response);
 
 
-    public createRequest(obj) {
-        return this.bridgeRequest(obj, this.postRequest, this.create);
+    public createRequest(obj, requestOptions=null) {
+        return this.bridgeRequest(obj, this.postRequest, this.create, requestOptions);
     }
 
-    public readRequest(obj) {
-        return this.bridgeRequest(obj, this.getRequest, this.read);
+    public readRequest(obj, requestOptions=null) {
+        return this.bridgeRequest(obj, this.getRequest, this.read, requestOptions);
     }
 
-    public updateRequest(obj) {
-        return this.bridgeRequest(obj, this.putRequest, this.update);
+    public updateRequest(obj, requestOptions=null) {
+        return this.bridgeRequest(obj, this.putRequest, this.update, requestOptions);
     }
 
-    public destroyRequest(obj) {
-        return this.bridgeRequest(obj, this.removeRequest, this.destroy);
+    public destroyRequest(obj, requestOptions=null) {
+        return this.bridgeRequest(obj, this.removeRequest, this.destroy, requestOptions);
     }
 
 
@@ -51,16 +52,6 @@ export abstract class HttpBridge extends Bridge {
         }
     }
 
-    protected getUrl(): void | string {
-        return void 0;
-    }
-
-
-    private getFullUrl(obj): string {
-        let customUrl = this.getUrl();
-        return customUrl ? customUrl : this.getObjUrl(obj);
-    }
-
     private extractIdentifier(obj) {
         let id = obj.getIdentifier();
 
@@ -77,18 +68,26 @@ export abstract class HttpBridge extends Bridge {
                typeof exp ===  Types.NUMBER;
     }
 
-    private bridgeRequest(obj, requestCb, processCb) {
+    private bridgeRequest(obj, requestCb, processCb, requestOptions) {
         let self = this,
-            url = this.getFullUrl(obj),
-            processedData,
+            url = this.getObjUrl(obj),
             request,
+            processedData,
+            requestPromise,
             data;
+
+        request = new Request();
+        request.setDefaults(requestOptions);
+
+        if ( !requestOptions.hasOwnProperty('url') ) {
+            request.setUrl(url);
+        }
 
         return new Promise((resolve, reject) => {
 
-            request = requestCb.call(self, url);
+            requestPromise = requestCb.call(self, request);
 
-            request.then(
+            requestPromise.then(
                 function onSuccess(response) {
                     data = self.getResponse(response);
                     processedData = processCb.call(self, data, obj);

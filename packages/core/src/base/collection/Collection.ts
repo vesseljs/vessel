@@ -36,8 +36,8 @@ export abstract class Collection extends Vessel {
 
     }
 
-    public fetch() {
-        return this.getBridge().readRequest(this);
+    public fetch(requestOptions=null) {
+        return this.getBridge().readRequest(this, requestOptions);
     }
 
     public find(attrs) {

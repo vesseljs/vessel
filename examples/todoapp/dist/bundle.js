@@ -591,7 +591,8 @@ var RemoteService$$1 = (function (_super) {
             .getRawData('app_config');
         return appConfig.baseUrl;
     };
-    RemoteService$$1.prototype.newAjaxRequest = function (url, method) {
+    RemoteService$$1.prototype.newAjaxRequest = function (request) {
+        var url = request.fullUrl, method = request.getMethod(), headers = request.getHeaders();
         return new Promise(function (resolve, reject) {
             var request = new XMLHttpRequest();
             request.onload = function () {
@@ -606,11 +607,14 @@ var RemoteService$$1 = (function (_super) {
                 reject("Network error.");
             };
             request.open(method, url);
+            each(headers, function (header, value) {
+                request.setRequestHeader(header, value);
+            });
             request.send();
         });
     };
-    RemoteService$$1.prototype.getRequest = function (url) {
-        return this.newAjaxRequest(url, HttpMethods.GET);
+    RemoteService$$1.prototype.getRequest = function (request) {
+        return this.newAjaxRequest(request.setMethod(HttpMethods.GET));
     };
     RemoteService$$1.prototype.postRequest = function (url) {
     };
@@ -631,6 +635,79 @@ var Bridge$$1 = (function (_super) {
     return Bridge$$1;
 }(RemoteService$$1));
 
+var Request = (function () {
+    function Request(opts) {
+        if (opts === void 0) { opts = null; }
+        this.url = '';
+        this.method = '';
+        this.headers = {};
+        this.body = null;
+        this.parameters = '';
+        if (opts) {
+            this.setDefaults(opts);
+        }
+    }
+    Object.defineProperty(Request.prototype, "fullUrl", {
+        get: function () {
+            return this.url + this.parameters;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Request.prototype.setUrl = function (url) {
+        this.url = url;
+        return this;
+    };
+    Request.prototype.getUrl = function () {
+        return this.url;
+    };
+    Request.prototype.setBody = function (body) {
+        this.body = body;
+        return this;
+    };
+    Request.prototype.getBody = function () {
+        return this.body;
+    };
+    Request.prototype.setHeaders = function (headers) {
+        this.headers = headers;
+        return this;
+    };
+    Request.prototype.getHeaders = function () {
+        return this.headers;
+    };
+    Request.prototype.setParameters = function (parameters) {
+        var result = '?';
+        each(parameters, function (param, value) {
+            result += param + '=' + value + '&';
+        }, this);
+        this.parameters = result.replace(RegExp.LAST_AMPERSAND, '');
+        return this;
+    };
+    Request.prototype.getParameters = function () {
+        return this.parameters;
+    };
+    Request.prototype.setMethod = function (method) {
+        this.method = method;
+        return this;
+    };
+    Request.prototype.getMethod = function () {
+        return this.method;
+    };
+    Request.prototype.setDefaults = function (opts) {
+        var setter;
+        each(opts, function (opt, value) {
+            if (!this.hasOwnProperty(opt)) {
+                throw new TypeError("Request: parameter error, option " + opt + " does " +
+                    "not exist.");
+            }
+            setter = this["set" + toInitialUpperCase(opt)];
+            setter.call(this, value);
+        }, this);
+        return this;
+    };
+    return Request;
+}());
+
 var HttpBridge$$1 = (function (_super) {
     __extends(HttpBridge$$1, _super);
     function HttpBridge$$1() {
@@ -638,17 +715,21 @@ var HttpBridge$$1 = (function (_super) {
         _this._type = BaseTypes.HTTP_BRIDGE;
         return _this;
     }
-    HttpBridge$$1.prototype.createRequest = function (obj) {
-        return this.bridgeRequest(obj, this.postRequest, this.create);
+    HttpBridge$$1.prototype.createRequest = function (obj, requestOptions) {
+        if (requestOptions === void 0) { requestOptions = null; }
+        return this.bridgeRequest(obj, this.postRequest, this.create, requestOptions);
     };
-    HttpBridge$$1.prototype.readRequest = function (obj) {
-        return this.bridgeRequest(obj, this.getRequest, this.read);
+    HttpBridge$$1.prototype.readRequest = function (obj, requestOptions) {
+        if (requestOptions === void 0) { requestOptions = null; }
+        return this.bridgeRequest(obj, this.getRequest, this.read, requestOptions);
     };
-    HttpBridge$$1.prototype.updateRequest = function (obj) {
-        return this.bridgeRequest(obj, this.putRequest, this.update);
+    HttpBridge$$1.prototype.updateRequest = function (obj, requestOptions) {
+        if (requestOptions === void 0) { requestOptions = null; }
+        return this.bridgeRequest(obj, this.putRequest, this.update, requestOptions);
     };
-    HttpBridge$$1.prototype.destroyRequest = function (obj) {
-        return this.bridgeRequest(obj, this.removeRequest, this.destroy);
+    HttpBridge$$1.prototype.destroyRequest = function (obj, requestOptions) {
+        if (requestOptions === void 0) { requestOptions = null; }
+        return this.bridgeRequest(obj, this.removeRequest, this.destroy, requestOptions);
     };
     HttpBridge$$1.prototype.getPartialUrl = function () {
         return this.getBaseUrl() + this.endPoint;
@@ -665,13 +746,6 @@ var HttpBridge$$1 = (function (_super) {
                 'Collection classes');
         }
     };
-    HttpBridge$$1.prototype.getUrl = function () {
-        return void 0;
-    };
-    HttpBridge$$1.prototype.getFullUrl = function (obj) {
-        var customUrl = this.getUrl();
-        return customUrl ? customUrl : this.getObjUrl(obj);
-    };
     HttpBridge$$1.prototype.extractIdentifier = function (obj) {
         var id = obj.getIdentifier();
         if (!this.isValidIdentifier(id)) {
@@ -684,11 +758,16 @@ var HttpBridge$$1 = (function (_super) {
         return typeof exp === Types.STRING ||
             typeof exp === Types.NUMBER;
     };
-    HttpBridge$$1.prototype.bridgeRequest = function (obj, requestCb, processCb) {
-        var self = this, url = this.getFullUrl(obj), processedData, request, data;
+    HttpBridge$$1.prototype.bridgeRequest = function (obj, requestCb, processCb, requestOptions) {
+        var self = this, url = this.getObjUrl(obj), request, processedData, requestPromise, data;
+        request = new Request();
+        request.setDefaults(requestOptions);
+        if (!requestOptions.hasOwnProperty('url')) {
+            request.setUrl(url);
+        }
         return new Promise(function (resolve, reject) {
-            request = requestCb.call(self, url);
-            request.then(function onSuccess(response) {
+            requestPromise = requestCb.call(self, request);
+            requestPromise.then(function onSuccess(response) {
                 data = self.getResponse(response);
                 processedData = processCb.call(self, data, obj);
                 resolve(processedData);
@@ -1175,8 +1254,9 @@ var Collection$$1 = (function (_super) {
     };
     Collection$$1.prototype.create = function () {
     };
-    Collection$$1.prototype.fetch = function () {
-        return this.getBridge().readRequest(this);
+    Collection$$1.prototype.fetch = function (requestOptions) {
+        if (requestOptions === void 0) { requestOptions = null; }
+        return this.getBridge().readRequest(this, requestOptions);
     };
     Collection$$1.prototype.find = function (attrs) {
         return filterOne(this.getCollection(), function (item) {
@@ -1251,6 +1331,7 @@ var RegExp = (function () {
     return RegExp;
 }());
 RegExp.EVENT_EXP = /^on/;
+RegExp.LAST_AMPERSAND = /\&$/igm;
 
 /**
  * MultipleKeyObject
@@ -1470,7 +1551,7 @@ function route(routeName, routePath) {
 }
 
 var app = {
-    baseUrl: 'http://mrtz.es'
+    baseUrl: 'http://samples.openweathermap.org/data/2.5'
 };
 
 function bootable(constructor) {
@@ -1663,10 +1744,18 @@ var TodoController = (function (_super) {
                 switch (_a.label) {
                     case 0:
                         todo = new TodoModel();
-                        return [4 /*yield*/, this.collection.fetch()];
+                        return [4 /*yield*/, this.collection.fetch({
+                                parameters: {
+                                    'q': 'London',
+                                    'appid': 'b1b15e88fa797225412429c1c50c122a1'
+                                },
+                                headers: {
+                                    'Allow-Control-Allow-Origin': '*'
+                                }
+                            })];
                     case 1:
                         response = _a.sent();
-                        this.render('view.todo', { id: response.description });
+                        this.render('view.todo', { id: response.coord.lat });
                         return [2 /*return*/];
                 }
             });
@@ -1796,7 +1885,7 @@ var TodoService = (function (_super) {
     __extends(TodoService, _super);
     function TodoService() {
         var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.endPoint = '/api/public/v1/user';
+        _this.endPoint = '/weather';
         return _this;
     }
     TodoService.prototype.getResponse = function (response) {
