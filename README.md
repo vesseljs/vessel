@@ -103,6 +103,9 @@ export class TodoModel extends BaseModel implements ModelInterface {
 }
 ```
 
+### Collections
+
+
 ### Services
 
 Your application is full of classes which perform useful actions, such as retrieving or processing data. That's the Service's component purpose. Services have two main objectives:
@@ -147,3 +150,194 @@ When a method crud is used by both collection and model such as read, Vessel wil
 
 If your application needs to return different results depending on what the obj is: a model or a collection you can use ```isModel(obj)``` or ```isCollection(obj)``` so you can define what will the collection.fetch() and model.fetch() retrieve using the same bridge service.
 
+### Dependency Injection
+
+Vessel provides a dependency injector so you don't have to worry about instantiating classes or booting up your application when you need the same instance for multiple purposes (Services, Controllers, Views, Collections, etc.). First, you have to register your modules, this is an example of a modules.ts file:
+
+```javascript
+import { TodoController } from '../controller/TodoController';
+
+import { TodoModel } from '../model/TodoModel';
+
+import { TodoCollection } from '../collection/TodoCollection';
+import { ThirdCollection } from '../collection/ThirdCollection';
+import { TestCollection } from '../collection/TestCollection';
+import { FourthCollection } from '../collection/FourthCollection';
+import { FifthCollection } from '../collection/FifthCollection';
+
+import { TodoView } from '../view/TodoView';
+
+import { TodoService } from '../service/TodoService';
+
+export const modules = {
+
+    models: {
+        'model.todo': TodoModel,
+    },
+
+    controllers: {
+        'controller.todo': TodoController
+    },
+
+    collections: {
+        'collection.todo': TodoCollection,
+        'collection.test': TestCollection,
+        'collection.third': ThirdCollection,
+        'collection.fourth': FourthCollection,
+        'collection.fifth': FifthCollection
+    },
+
+    views: {
+        'view.todo': TodoView
+    },
+
+    services: {
+        'service.todo': TodoService
+    }
+
+}; ```
+
+This file has to be imported from the main.ts of your application.
+
+```javascript
+import { RouterBoot } from '@vessel/router';
+import { VirtualDOMBoot } from '@vessel/dom';
+
+import { app as appConfig } from './config/app';
+import { modules } from './config/modules';
+import { BaseApp } from '@vessel/core';
+import { bootable } from '@vessel/decorators';
+
+@bootable
+class App extends BaseApp {
+
+    public registerConfig() {
+        return appConfig;
+    }
+
+    public registerModules() {
+        return modules;
+    }
+
+    public registerPackages() {
+        return [
+            new RouterBoot(),
+            new VirtualDOMBoot()
+        ];
+    }
+
+    public getGlobalName() {
+        return '$App';
+    }
+
+}
+```
+
+Notice how the modules are registered within the registerModules() method. The Vessel's Kernel will register this configuration and your modules will be ready to go! Once you have registered your modules, you can use the injector.
+
+#### get(<module name>) Method
+
+The get method is included in our **Collection, View, Model, Service** and **Controller** classes and it is a _container.get()_ alias. This method will return a single instance of the given **module name** and resolve its dependencies recursively. When a module is resolved, all the dependencies specified by the @get Decorator are injected to its instance. You will be warned if a circular dependency is detected.
+
+```javascript
+   // import [...]
+   
+   class MyController extends BaseController {
+        
+        method() {
+            // Resolve the module TodoCollection and its dependencies
+            // recursively.
+            let collection = this.get('todo.collection'); 
+        }
+   }
+```
+
+#### @get(<module name>) Decorator
+
+The @get() decorator can be used to add dependencies to a class. Note that this will not actually inject any dependencies. This dependencies are resolved when the class, which we're applying our decorator to, is loaded by a .get() method or the class it's a dependency of a class which is being loaded by the .get() method.
+
+<sub>_MyCollection.ts (module name: todo.collection)_</sub>
+```javascript
+   // import [...]
+   
+   class MyCollection extends BaseCollection {
+        
+       @get('testService') 
+       public testService;
+       
+   }
+```
+
+<sub>_MyController.ts (module name: todo.controller)_</sub>
+```javascript
+   // import [...]
+   
+   class MyController extends BaseController {
+        
+        method() {
+            // Collection will be resolved, as well as its dependency testService.
+            let collection = this.get('todo.collection');
+        }
+   }
+```
+
+<sub>_AnotherController.ts (module name: todo.controller_two)_</sub>
+```javascript
+   // import [...]
+   
+   class MyController extends BaseController {
+        
+        method() {
+            // Same collection as the MyController one.
+            let collection = this.get('todo.collection');
+        }
+   }
+```
+
+
+
+Limitations:
+
+- You can't use a @get dependency within a constructor, as it is injected right after the instantiation. That said, this is wrong:
+
+```javascript
+   // import [...]
+   
+   class MyController extends BaseController {
+        
+        @get('collection')
+        public myCollection;
+        
+        constructor() {
+            let collection = this.myCollection // will be undefined.
+        }
+        
+        method() {
+            let collection = this.myCollection // will be fine.
+        }
+   }
+```
+
+But you can always use this.get(), this is a working snippet for the code right above:
+
+```javascript
+   // import [...]
+   
+   class MyController extends BaseController {
+        public myCollection;
+        
+        constructor() {
+            this.myCollection = this.get('collection') // will be fine.
+        }
+        
+        method() {
+            this.myCollection = will be fine.
+        }
+   }
+```
+
+- You can't use a @get dependency within classes that will have more than one instance, for example a TodoModel will be instantiated several times at runtime so dependency injection have no sense and they're not gonna be resolved since you're not starting a model with the container.get() method. However, this.get() can be used within models so, for example, you can get a service (which is not recommended, models should be used only for data schemes).
+
+### Controllers
+
+### Views
