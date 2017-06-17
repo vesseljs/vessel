@@ -109,8 +109,8 @@ export class TodoModel extends BaseModel implements ModelInterface {
 ### Services
 
 Your application is full of classes which perform useful actions, such as retrieving or processing data. That's the Service's component purpose. Services have two main objectives:
-- Connect your application with external data —like Storage or a Rest Api— : **RemoteServices**.
-- Perform the same actions among the controllers —for example, processing data— : **Services**.
+- Connect your application with external data —like Storage or a Rest Api— **RemoteServices**.
+- Perform the same actions among the controllers —for example, processing data— **Services**.
 
 You can create your own RemoteServices, so you have full control over your requests or you can code your own **Bridge Services**. This services are a special kind of pre-configured RemoteServices, which allows you to use collection.fetch(), model.fetch(), model.save(), model.remove() methods. For example, we're gonna use the HttpBridge so we can use our remote methods.
 
@@ -195,7 +195,8 @@ export const modules = {
         'service.todo': TodoService
     }
 
-}; ```
+};
+```
 
 This file has to be imported from the main.ts of your application.
 
