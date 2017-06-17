@@ -17,5 +17,9 @@
     "gulp": "^3.9.1",
     "run-sequence": "^1.2.2"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "repository" : {
+    "type" : "git",
+    "url" : "https://github.com/vesseljs/vessel"
+  }
 }
