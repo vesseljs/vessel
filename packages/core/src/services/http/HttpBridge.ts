@@ -42,14 +42,22 @@ export abstract class HttpBridge extends Bridge {
     }
 
     protected getObjUrl(obj) {
-        if ( obj.getType() === BaseTypes.MODEL ) {
+        if ( this.isModel(obj) ) {
             return this.getPartialUrl() + '/' + this.extractIdentifier(obj);
-        } else if ( obj.getType() === BaseTypes.COLLECTION ) {
+        } else if ( this.isCollection(obj) ) {
             return this.getPartialUrl();
         } else {
             throw new TypeError('Bridges can only be used with Model and ' +
                 'Collection classes');
         }
+    }
+
+    private isModel(obj) {
+        return obj.getType() === BaseTypes.MODEL;
+    }
+
+    private isCollection(obj) {
+        return obj.getType() === BaseTypes.COLLECTION;
     }
 
     private extractIdentifier(obj) {
