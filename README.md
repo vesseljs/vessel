@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/22831717/27256786-19b7b40e-53c1-11e7-907c-bc3d2d0fcf6d.png"/>
+</p>
+
 # Vessel Framework
 
 <sub>_Vessel.js is a work in progress!_</sub>
