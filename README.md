@@ -105,6 +105,35 @@ export class TodoModel extends BaseModel implements ModelInterface {
 
 ### Collections
 
+Collections are just sets of models in memory. Just like models, a bridge service can be defined so you can use **.fetch()** and **.create()** methods. Also, collections have an API available for managing its models. 
+- **find({'id': 3})**: returns the first ocurrence based on an attribute(s) search, 
+- **findAll({ 'name': 'test'})**: returns all the ocurrences based on an attribute(s) search, 
+- **pull('name')**: plucks the attribute _'name'_ from every model and returns an array with the values. 
+
+You can define a comparator so when new models are added they will keep the order.
+
+```javascript
+import { Collection as BaseCollection } from '@vessel/core';
+import { TodoModel } from '../model/TodoModel';
+
+export class TodoCollection extends BaseCollection {
+
+    /**
+     *  Service Bridge (module name) to  be used.
+     */
+    protected bridge = 'service.todo';
+    
+    /**
+     *  Collection Model.
+     */
+    public model = TodoModel;
+    
+    /**
+     *  Insert models ordered by name attribute.
+     */
+    public compare = 'name';
+}
+```
 
 ### Services
 
@@ -340,5 +369,44 @@ But you can always use this.get(), this is a working snippet for the code right 
 - You can't use a @get dependency within classes that will have more than one instance, for example a TodoModel will be instantiated several times at runtime so dependency injection have no sense and they're not gonna be resolved since you're not starting a model with the container.get() method. However, this.get() can be used within models so, for example, you can get a service (which is not recommended, models should be used only for data schemes).
 
 ### Controllers
+
+Controllers manage the user-app interaction. A controller consists of action methods such as editTodo, viewTodo, storeTodo, indexTodo, removeTodo, etc. Each action is associated with a route name and an optional route path. In most cases, controllers use the collections, services, etc. to retrieve, fetch, proccess... data and then, render the resulting data.
+
+A controller can render a view with its module name with the **render()** method passing the data to be render or render other routes by its name with **renderRoute()**. When an action is triggered by its route path the route parameters are passed in to the action as the first parameters.
+
+```javascript
+import { Controller as BaseController } from '@vessel/core';
+
+import { route } from '@vessel/router';
+import { get } from '@vessel/decorators';
+
+import { TodoModel } from '../model/TodoModel';
+
+export class TodoController extends BaseController {
+
+    @get('collection.todo')
+    public todoCollection;
+
+    @route('todo_edit', '/edit/{id}')
+    public async editTodo(id, title, body) {
+        let updatedTodo,
+            todo = this.todoCollection.find({'id': id});
+        
+        todo.setTitle(title)
+            .setBody(body);
+            
+        updatedTodo = await todo.save();
+
+        return this.renderRoute('todo_view', updatedTodo.id);
+    }
+    
+    @route('todo_view', '/todo/{id}')
+    public viewTodo(id) {
+        let todo = this.todoCollection.find({'id': id});
+        return this.render('view.todo', { id: todo.id, title: todo.title, body: todo.body });
+    }
+}
+```
+
 
 ### Views
