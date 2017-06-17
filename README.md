@@ -310,11 +310,11 @@ Limitations:
         public myCollection;
         
         constructor() {
-            let collection = this.myCollection // will be undefined.
+            let collection = this.myCollection // collection will be undefined.
         }
         
         method() {
-            let collection = this.myCollection // will be fine.
+            let collection = this.myCollection // collection will be right.
         }
    }
 ```
@@ -328,11 +328,11 @@ But you can always use this.get(), this is a working snippet for the code right 
         public myCollection;
         
         constructor() {
-            this.myCollection = this.get('collection') // will be fine.
+            this.myCollection = this.get('collection') // myCollection will be right.
         }
         
         method() {
-            this.myCollection = will be fine.
+            let collection = this.myCollection // collection will be right.
         }
    }
 ```
