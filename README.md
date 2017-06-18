@@ -418,3 +418,59 @@ export class TodoController extends BaseController {
 
 
 ### Views
+
+Views are not aware of the rest of your application. Vessel uses a basic built-in Virtual DOM with an abstraction layer, which is quite similar to the vanilla DOM (a template engine may be used in the future). Views have an status object when they're being rendered, which is used for rendering the data from the controllers. Also, views have a renderRoute() method so they can call routes by name which will trigger controller actions.
+
+```javascript
+import { View } from '@vessel/core';
+import { VirtualDOM } from '@vessel/dom';
+
+export class TodoView extends View {
+
+    public parent = '#todo-root';
+
+    public constructor() {
+        super();
+        this.onRefresh = this.onRefresh.bind(this);
+    }
+
+    public onRefresh() {
+        this.renderRoute('todo_edit', ++this.state.id);
+    }
+
+    public render() {
+        let div, p, i, button, input,
+            self = this;
+
+        div = this.create('div')
+            .set({
+                'class' : 'todo-class'
+            })
+            .css({
+                'color': 'red'
+            });
+
+        p = this.create('p')
+            .text("I'm the todo id ")
+            .appendTo(div);
+
+        i = this.create('i')
+            .text(this.state.id)
+            .appendTo(p);
+
+        input = this.create('input')
+            .set({
+                'id': 'input'
+            })
+            .appendTo(div);
+
+        button = this.create('button')
+            .text("Refresh")
+            .click(self.onRefresh)
+            .appendTo(div);
+
+        return div;
+    }
+
+}
+```
