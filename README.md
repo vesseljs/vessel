@@ -31,7 +31,7 @@ Then, run in the boilerplate directory
 `npm install`
 
 
-## Quick preview
+## Quick Overview
 
 ### Models
 
