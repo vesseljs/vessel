@@ -374,7 +374,7 @@ But you can always use this.get(), this is a working snippet for the code right 
    }
 ```
 
-- You can't use a @get dependency within classes that will have more than one instance, for example a TodoModel will be instantiated several times at runtime so dependency injection have no sense and they're not gonna be resolved since you're not starting a model with the container.get() method. However, this.get() can be used within models so, for example, you can get a service (which is not recommended, models should be used only for data schemes).
+- You can't use a @get dependency within classes that will have more than one instance at the same time, for example a TodoModel will be instantiated several times at runtime so dependency injection have no sense and they're not gonna be resolved since you're not starting a model with the container.get() method. However, this.get() can be used within models so, for example, you can get a service (which is not recommended, models should be used only for data schemes).
 
 ### Controllers
 
@@ -419,7 +419,7 @@ export class TodoController extends BaseController {
 
 ### Views
 
-Views are not aware of the rest of your application. Vessel uses a basic built-in Virtual DOM with an abstraction layer, which is quite similar to the vanilla DOM (a template engine may be used in the future). Views have an status object when they're being rendered, which is used for rendering the data from the controllers. Also, views have a renderRoute() method so they can call routes by name which will trigger controller actions.
+Views are not aware of the rest of your application. Vessel uses a basic built-in Virtual DOM with an abstraction layer, which is quite similar to the vanilla DOM (a template engine may be used in the future). Views have a status object when they're being rendered, which is used for rendering the data from the controllers. Also, views have a renderRoute() method so they can call routes by name which will trigger controller actions.
 
 ```javascript
 import { View } from '@vessel/core';
