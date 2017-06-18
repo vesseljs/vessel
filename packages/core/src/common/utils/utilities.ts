@@ -52,10 +52,6 @@ export function isGet(method: string) {
     return method === HttpMethods.GET;
 }
 
-export function isPost(method: string) {
-    return method === HttpMethods.POST;
-}
-
 export function isModel(obj) {
     return obj.getType() === BaseTypes.MODEL;
 }
