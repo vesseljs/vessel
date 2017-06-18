@@ -2,7 +2,7 @@ import { HttpBridge } from '@vessel/core';
 
 export class TodoService extends HttpBridge {
 
-    protected endPoint = '/weather';
+    protected endPoint = '/post';
 
     protected getResponse(response) {
         return JSON.parse(response);

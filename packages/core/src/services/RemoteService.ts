@@ -1,5 +1,5 @@
 import { Service } from './Service';
-import { each, BaseTypes } from '@vessel/core';
+import { isEmpty, isGet, each, BaseTypes } from '@vessel/core';
 import { HttpMethods } from  './http/HttpMethods';
 import { Request } from "./http/Request";
 
@@ -16,47 +16,67 @@ export class RemoteService extends Service {
     protected newAjaxRequest(request: Request) {
         let url = request.fullUrl,
             method = request.getMethod(),
-            headers = request.getHeaders();
+            headers = request.getHeaders(),
+            params = request.getParameters(),
+            body = request.getBody();
 
         return new Promise( (resolve, reject) => {
-            let request = new XMLHttpRequest();
+            let xhttp = new XMLHttpRequest();
 
-            request.onload = function() {
-                if (request.status === 200) {
-                    resolve(request.response);
+            xhttp.onload = function() {
+                if (xhttp.status === 200) {
+                    resolve(xhttp.response);
                 } else {
-                    reject(request.statusText);
+                    reject(xhttp.statusText);
                 }
             };
 
-            request.onerror = function() {
+            xhttp.onerror = function() {
                 reject("Network error.")
             };
 
-            request.open(method, url);
+            xhttp.open(method, url);
 
-            each(headers, function(header,value){
-               request.setRequestHeader(header, value);
+            each(headers, function(header, value){
+               xhttp.setRequestHeader(header, value);
             });
 
-            request.send();
+            if ( isGet(method) ) {
+                xhttp.send();
+            } else {
+                let payload = isEmpty(body) ? params : JSON.stringify(body);
 
+                if (!payload) {
+                    throw new TypeError("newAjaxRequest: Attempt to send a post request " +
+                        "with no parameters nor body within the request");
+                }
+
+                xhttp.send(payload);
+            }
         });
     }
 
+
     protected getRequest(request: Request) {
-        return this.newAjaxRequest( request.setMethod(HttpMethods.GET) );
+        return this.newAjaxRequest( this.setMethod(request, HttpMethods.GET) );
     }
 
-    protected postRequest(url: string) {
-
+    protected postRequest(request: Request) {
+        return this.newAjaxRequest( this.setMethod(request, HttpMethods.POST) );
     }
 
-    protected putRequest(url: string) {
-
+    protected putRequest(request: Request) {
+        return this.newAjaxRequest( this.setMethod(request, HttpMethods.PUT) );
     }
 
-    protected removeRequest(url: string) {
+    protected removeRequest(request: Request) {
+        return this.newAjaxRequest( this.setMethod(request, HttpMethods.DELETE) );
+    }
 
+    private setMethod(request: Request, method: string) {
+        if ( !request.getMethod() ) {
+            request.setMethod(method);
+        }
+        return request;
     }
 }

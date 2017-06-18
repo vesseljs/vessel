@@ -254,7 +254,7 @@ var Container$$1 = (function () {
         this.cache = new WeakMap();
     }
     Container$$1.prototype.register = function (opts) {
-        merge(this.modules, opts);
+        merge$$1(this.modules, opts);
         return this;
     };
     Container$$1.prototype.registerSingleModule = function (name, module) {
@@ -322,7 +322,7 @@ var Container$$1 = (function () {
             name: name,
             constructor: constructor
         };
-        each(dependencies, function (item) {
+        each$$1(dependencies, function (item) {
             this.inject(item.depName, item.attrName, topParent);
         }, this);
         return this.loadModule(constructor);
@@ -366,7 +366,7 @@ var Container$$1 = (function () {
         }
         var depDependencies = this.getDependencies(depConstructor.name);
         parents.push(depName);
-        each(depDependencies, function (dep) {
+        each$$1(depDependencies, function (dep) {
             this.inject(dep.depName, dep.attrName, topParent, parents, depConstructor);
         }, this);
         // Only the top-parent dependency enters here.
@@ -390,7 +390,7 @@ var Container$$1 = (function () {
      * is found.
      */
     Container$$1.prototype.findModuleByName = function (queryName) {
-        var modules = this.modules, keys = getKeys(modules), len = keys.length;
+        var modules = this.modules, keys = getKeys$$1(modules), len = keys.length;
         for (var i = 0; i < len; i++) {
             var moduleType = keys[i], module = modules[moduleType];
             if (module && module.hasOwnProperty(queryName))
@@ -399,7 +399,7 @@ var Container$$1 = (function () {
         return null;
     };
     Container$$1.prototype.isCircular = function (depName, parents, topParentName) {
-        return depName === topParentName || findItem(parents, depName);
+        return depName === topParentName || findItem$$1(parents, depName);
     };
     return Container$$1;
 }());
@@ -473,8 +473,8 @@ var Kernel$$1 = (function () {
     };
     Kernel$$1.prototype.loadPackages = function (arr) {
         var namespace = this.app, container = namespace.container;
-        each(arr, function (pkgs) {
-            each(pkgs, function (pkg) {
+        each$$1(arr, function (pkgs) {
+            each$$1(pkgs, function (pkg) {
                 pkg.register(container);
                 pkg.setup(namespace, container);
             });
@@ -578,6 +578,9 @@ var HttpMethods = (function () {
     return HttpMethods;
 }());
 HttpMethods.GET = 'GET';
+HttpMethods.POST = 'POST';
+HttpMethods.PUT = 'PUT';
+HttpMethods.DELETE = 'DELETE';
 
 var RemoteService$$1 = (function (_super) {
     __extends(RemoteService$$1, _super);
@@ -592,35 +595,54 @@ var RemoteService$$1 = (function (_super) {
         return appConfig.baseUrl;
     };
     RemoteService$$1.prototype.newAjaxRequest = function (request) {
-        var url = request.fullUrl, method = request.getMethod(), headers = request.getHeaders();
+        var url = request.fullUrl, method = request.getMethod(), headers = request.getHeaders(), params = request.getParameters(), body = request.getBody();
         return new Promise(function (resolve, reject) {
-            var request = new XMLHttpRequest();
-            request.onload = function () {
-                if (request.status === 200) {
-                    resolve(request.response);
+            var xhttp = new XMLHttpRequest();
+            xhttp.onload = function () {
+                if (xhttp.status === 200) {
+                    resolve(xhttp.response);
                 }
                 else {
-                    reject(request.statusText);
+                    reject(xhttp.statusText);
                 }
             };
-            request.onerror = function () {
+            xhttp.onerror = function () {
                 reject("Network error.");
             };
-            request.open(method, url);
-            each(headers, function (header, value) {
-                request.setRequestHeader(header, value);
+            xhttp.open(method, url);
+            each$$1(headers, function (header, value) {
+                xhttp.setRequestHeader(header, value);
             });
-            request.send();
+            if (isGet$$1(method)) {
+                xhttp.send();
+            }
+            else {
+                var payload = isEmpty$$1(body) ? params : JSON.stringify(body);
+                if (!payload) {
+                    throw new TypeError("newAjaxRequest: Attempt to send a post request " +
+                        "with no parameters nor body within the request");
+                }
+                xhttp.send(payload);
+            }
         });
     };
     RemoteService$$1.prototype.getRequest = function (request) {
-        return this.newAjaxRequest(request.setMethod(HttpMethods.GET));
+        return this.newAjaxRequest(this.setMethod(request, HttpMethods.GET));
     };
-    RemoteService$$1.prototype.postRequest = function (url) {
+    RemoteService$$1.prototype.postRequest = function (request) {
+        return this.newAjaxRequest(this.setMethod(request, HttpMethods.POST));
     };
-    RemoteService$$1.prototype.putRequest = function (url) {
+    RemoteService$$1.prototype.putRequest = function (request) {
+        return this.newAjaxRequest(this.setMethod(request, HttpMethods.PUT));
     };
-    RemoteService$$1.prototype.removeRequest = function (url) {
+    RemoteService$$1.prototype.removeRequest = function (request) {
+        return this.newAjaxRequest(this.setMethod(request, HttpMethods.DELETE));
+    };
+    RemoteService$$1.prototype.setMethod = function (request, method) {
+        if (!request.getMethod()) {
+            request.setMethod(method);
+        }
+        return request;
     };
     return RemoteService$$1;
 }(Service$$1));
@@ -677,7 +699,7 @@ var Request = (function () {
     };
     Request.prototype.setParameters = function (parameters) {
         var result = '?';
-        each(parameters, function (param, value) {
+        each$$1(parameters, function (param, value) {
             result += param + '=' + value + '&';
         }, this);
         this.parameters = result.replace(RegExp.LAST_AMPERSAND, '');
@@ -695,12 +717,12 @@ var Request = (function () {
     };
     Request.prototype.setDefaults = function (opts) {
         var setter;
-        each(opts, function (opt, value) {
+        each$$1(opts, function (opt, value) {
             if (!this.hasOwnProperty(opt)) {
                 throw new TypeError("Request: parameter error, option " + opt + " does " +
                     "not exist.");
             }
-            setter = this["set" + toInitialUpperCase(opt)];
+            setter = this["set" + toInitialUpperCase$$1(opt)];
             setter.call(this, value);
         }, this);
         return this;
@@ -715,55 +737,71 @@ var HttpBridge$$1 = (function (_super) {
         _this._type = BaseTypes.HTTP_BRIDGE;
         return _this;
     }
-    HttpBridge$$1.prototype.createRequest = function (obj, requestOptions) {
-        if (requestOptions === void 0) { requestOptions = null; }
+    HttpBridge$$1.prototype.createRequest = function (obj, requestCustomOptions) {
+        if (requestCustomOptions === void 0) { requestCustomOptions = null; }
+        var requestOptions = this.buildJSONRequest(obj, requestCustomOptions);
+        // If it's POST (create) we don't
+        // want the {id} to be added to
+        // the url.
+        //
+        // E.g.:    /todos/{id} -> /todos
+        if (!requestOptions.hasOwnProperty('url')) {
+            requestOptions.url = this.getPartialUrl();
+        }
         return this.bridgeRequest(obj, this.postRequest, this.create, requestOptions);
     };
-    HttpBridge$$1.prototype.readRequest = function (obj, requestOptions) {
-        if (requestOptions === void 0) { requestOptions = null; }
-        return this.bridgeRequest(obj, this.getRequest, this.read, requestOptions);
+    HttpBridge$$1.prototype.readRequest = function (obj, requestCustomOptions) {
+        if (requestCustomOptions === void 0) { requestCustomOptions = null; }
+        return this.bridgeRequest(obj, this.getRequest, this.read, requestCustomOptions);
     };
-    HttpBridge$$1.prototype.updateRequest = function (obj, requestOptions) {
-        if (requestOptions === void 0) { requestOptions = null; }
+    HttpBridge$$1.prototype.updateRequest = function (obj, requestCustomOptions) {
+        if (requestCustomOptions === void 0) { requestCustomOptions = null; }
+        var requestOptions = this.buildJSONRequest(obj, requestCustomOptions);
         return this.bridgeRequest(obj, this.putRequest, this.update, requestOptions);
     };
-    HttpBridge$$1.prototype.destroyRequest = function (obj, requestOptions) {
-        if (requestOptions === void 0) { requestOptions = null; }
+    HttpBridge$$1.prototype.destroyRequest = function (obj, requestCustomOptions) {
+        if (requestCustomOptions === void 0) { requestCustomOptions = null; }
+        var requestOptions = this.buildJSONRequest(obj, requestCustomOptions);
         return this.bridgeRequest(obj, this.removeRequest, this.destroy, requestOptions);
     };
     HttpBridge$$1.prototype.getPartialUrl = function () {
         return this.getBaseUrl() + this.endPoint;
     };
     HttpBridge$$1.prototype.getObjUrl = function (obj) {
-        if (obj.getType() === BaseTypes.MODEL) {
+        if (isModel$$1(obj)) {
             return this.getPartialUrl() + '/' + this.extractIdentifier(obj);
         }
-        else if (obj.getType() === BaseTypes.COLLECTION) {
+        else if (isCollection$$1(obj)) {
             return this.getPartialUrl();
         }
-        else {
-            throw new TypeError('Bridges can only be used with Model and ' +
-                'Collection classes');
-        }
+    };
+    HttpBridge$$1.prototype.buildJSONRequest = function (obj, requestCustomOptions) {
+        var requestOptions = {
+            body: obj.getAttrs(),
+            headers: {
+                'Content-type': 'application/json'
+            }
+        };
+        return merge$$1(requestOptions, requestCustomOptions);
     };
     HttpBridge$$1.prototype.extractIdentifier = function (obj) {
         var id = obj.getIdentifier();
         if (!this.isValidIdentifier(id)) {
-            throw new TypeError('Bridge: Invalid identifier ' +
-                id + ' (' + typeof id + ').');
+            throw new TypeError("Bridge: Invalid identifier '" +
+                id + "' (" + typeof id + ").");
         }
         return id;
     };
     HttpBridge$$1.prototype.isValidIdentifier = function (exp) {
-        return typeof exp === Types.STRING ||
+        return typeof exp === Types.STRING && exp !== "" ||
             typeof exp === Types.NUMBER;
     };
     HttpBridge$$1.prototype.bridgeRequest = function (obj, requestCb, processCb, requestOptions) {
-        var self = this, url = this.getObjUrl(obj), request, processedData, requestPromise, data;
+        var self = this, request, processedData, requestPromise, data;
         request = new Request();
         request.setDefaults(requestOptions);
         if (!requestOptions.hasOwnProperty('url')) {
-            request.setUrl(url);
+            request.setUrl(this.getObjUrl(obj));
         }
         return new Promise(function (resolve, reject) {
             requestPromise = requestCb.call(self, request);
@@ -814,11 +852,14 @@ var AttribProxy = (function () {
      */
     AttribProxy.prototype.addAttribute = function (name) {
         this.data[name] = "";
-        defineProp(this, name, function getter() {
+        defineProp$$1(this, name, function getter() {
             return this.data[name];
         }, function setter(value) {
             this.data[name] = value;
         });
+    };
+    AttribProxy.prototype.getAttrs = function () {
+        return this.data;
     };
     return AttribProxy;
 }());
@@ -841,30 +882,36 @@ var Model$$1 = (function (_super) {
      * @param attrs
      */
     Model$$1.prototype.set = function (attrs) {
-        each(attrs, function (attrName, value) {
-            var boundFn = this['set' + toInitialUpperCase(attrName)];
+        each$$1(attrs, function (attrName, value) {
+            var boundFn = this['set' + toInitialUpperCase$$1(attrName)];
             boundFn.call(this, value);
         }, this);
         return this;
     };
-    Model$$1.prototype.save = function () {
+    Model$$1.prototype.save = function (requestOptions) {
+        if (requestOptions === void 0) { requestOptions = null; }
         var bridge = this.getBridge();
         if (this.isNew()) {
-            return bridge.createRequest(this);
+            return bridge.createRequest(this, requestOptions);
         }
-        return bridge.updateRequest(this);
+        return bridge.updateRequest(this, requestOptions);
     };
-    Model$$1.prototype.fetch = function () {
-        return this.getBridge().readRequest(this);
+    Model$$1.prototype.fetch = function (requestOptions) {
+        if (requestOptions === void 0) { requestOptions = null; }
+        return this.getBridge().readRequest(this, requestOptions = null);
     };
-    Model$$1.prototype.remove = function () {
-        return this.getBridge().destroyRequest(this);
+    Model$$1.prototype.remove = function (requestOptions) {
+        if (requestOptions === void 0) { requestOptions = null; }
+        return this.getBridge().destroyRequest(this, requestOptions = null);
     };
     Model$$1.prototype.getIdentifier = function () {
         var attrName = this
             .get('@metadata_manager')
             .getIdentifier(this.getClassName());
         return this.attr[attrName];
+    };
+    Model$$1.prototype.getAttrs = function () {
+        return this.attr.getAttrs();
     };
     Model$$1.prototype.isNew = function () {
         return !this.getIdentifier();
@@ -878,12 +925,12 @@ var Model$$1 = (function (_super) {
     Model$$1.prototype._createProxy = function () {
         var attrs, metadataManager = this.get('@metadata_manager');
         attrs = metadataManager.getAttributes(this.getClassName());
-        if (isArrayEmpty(attrs)) {
+        if (isArrayEmpty$$1(attrs)) {
             throw TypeError("Attempt to create a proxy" +
                 " with no metadata.");
         }
         this.attr = new AttribProxy();
-        each(attrs, function (attrName) {
+        each$$1(attrs, function (attrName) {
             this.attr.addAttribute(attrName);
         }, this);
     };
@@ -951,13 +998,13 @@ var VirtualNode = (function () {
         return this.element;
     };
     VirtualNode.prototype.set = function (props) {
-        merge(this.attributes, props);
+        merge$$1(this.attributes, props);
         return this;
     };
     VirtualNode.prototype.text = function (str) {
         var children = this.children;
         if (children.length === 0)
-            children.push(toString(str));
+            children.push(toString$$1(str));
         return this;
     };
     VirtualNode.prototype.appendTo = function ($parent) {
@@ -970,7 +1017,7 @@ var VirtualNode = (function () {
     };
     VirtualNode.prototype.css = function (attrs) {
         var style = '';
-        each(attrs, function (attr, value) {
+        each$$1(attrs, function (attr, value) {
             style += attr + ":" + value + ";";
         });
         return this.set({
@@ -1123,7 +1170,7 @@ var VirtualDOM = (function () {
         }
     };
     VirtualDOM.prototype.createRealElement = function ($node) {
-        if (isString($node)) {
+        if (isString$$1($node)) {
             return document.createTextNode($node);
         }
         var $child, elem = document.createElement($node.type), children = $node.children;
@@ -1149,8 +1196,8 @@ var VirtualDOM = (function () {
         elem.removeAttribute(name, value);
     };
     VirtualDOM.prototype.setAttributes = function (elem, attributes) {
-        each(attributes, function (name, value) {
-            if (isEvent(name)) {
+        each$$1(attributes, function (name, value) {
+            if (isEvent$$1(name)) {
                 this.addEvent(elem, name, value);
             }
             else {
@@ -1159,7 +1206,7 @@ var VirtualDOM = (function () {
         }, this);
     };
     VirtualDOM.prototype.addEvent = function (elem, eventName, boundFn) {
-        return elem.addEventListener(formatEvent(eventName), boundFn);
+        return elem.addEventListener(formatEvent$$1(eventName), boundFn);
     };
     VirtualDOM.prototype.removeChild = function (parent, index) {
         parent.removeChild(parent.childNodes[index]);
@@ -1198,7 +1245,7 @@ var View$$1 = (function (_super) {
         return _this;
     }
     View$$1.prototype.setState = function (state) {
-        merge(this.state, state);
+        merge$$1(this.state, state);
         return this;
     };
     View$$1.prototype.getLastNode = function () {
@@ -1244,7 +1291,7 @@ var Collection$$1 = (function (_super) {
         }
         catch (e) {
             if (e instanceof TypeError) {
-                if (!isArray(collection)) {
+                if (!isArray$$1(collection)) {
                     console.error("TypeError: The collection '" +
                         collection + "' (" + typeof collection +
                         ") must be an array.");
@@ -1259,17 +1306,17 @@ var Collection$$1 = (function (_super) {
         return this.getBridge().readRequest(this, requestOptions);
     };
     Collection$$1.prototype.find = function (attrs) {
-        return filterOne(this.getCollection(), function (item) {
-            return matchPair(item[prefixAttr], attrs);
+        return filterOne$$1(this.getCollection(), function (item) {
+            return matchPair$$1(item[prefixAttr], attrs);
         });
     };
     Collection$$1.prototype.findAll = function (attrs) {
-        return filter(this.getCollection(), function (item) {
-            return matchPair(item[prefixAttr], attrs);
+        return filter$$1(this.getCollection(), function (item) {
+            return matchPair$$1(item[prefixAttr], attrs);
         });
     };
     Collection$$1.prototype.pull = function (attrName) {
-        return map(this.getCollection(), function (item) {
+        return map$$1(this.getCollection(), function (item) {
             return item[prefixAttr][attrName];
         });
     };
@@ -1308,7 +1355,7 @@ var BaseApp$$1 = (function () {
     };
     BaseApp$$1.prototype.detectBrowserFeatures = function () {
         this.can = {
-            WeakMap: isSupported(window.WeakMap)
+            WeakMap: isSupported$$1(window.WeakMap)
         };
         return this;
     };
@@ -1352,7 +1399,7 @@ var MultipleKeyObject$$1 = (function () {
                 return this.container[key] = value;
             }
             if (key) {
-                defineProp(this.container, key, function getter() {
+                defineProp$$1(this.container, key, function getter() {
                     return this["$" + masterKey];
                 }, function setter(v) {
                     return this["$" + masterKey] = v;
@@ -1370,47 +1417,62 @@ var MultipleKeyObject$$1 = (function () {
     return MultipleKeyObject$$1;
 }());
 
-function isSupported(feature) {
+function isSupported$$1(feature) {
     return typeof feature == Types.FUNCTION;
 }
-function isArray(arr) {
+function isArray$$1(arr) {
     return Array.isArray(arr);
 }
-function isArrayEmpty(arr) {
+function isEmpty$$1(obj) {
+    if (obj == null)
+        return true;
+    return getKeys$$1(obj).length === 0;
+}
+function isArrayEmpty$$1(arr) {
     if (!arr)
         return true;
     if (arr.length === 0)
         return true;
     return false;
 }
-function isEvent(exp) {
+function isEvent$$1(exp) {
     return RegExp.EVENT_EXP.test(exp);
 }
-function isFunction(fn) {
+function isFunction$$1(fn) {
     if (fn == undefined)
         return false;
     if (typeof fn !== Types.FUNCTION)
         return false;
     return true;
 }
-function isString(exp) {
+function isString$$1(exp) {
     return typeof exp === Types.STRING;
 }
-function isObject(exp) {
+function isObject$$1(exp) {
     return typeof exp === Types.OBJECT;
 }
-function each(obj, fn, context) {
+function isGet$$1(method) {
+    return method === HttpMethods.GET;
+}
+
+function isModel$$1(obj) {
+    return obj.getType() === BaseTypes.MODEL;
+}
+function isCollection$$1(obj) {
+    return obj.getType() === BaseTypes.COLLECTION;
+}
+function each$$1(obj, fn, context) {
     if (context === void 0) { context = null; }
     var i, len, keys, item, result;
     if (!obj)
         return;
-    if (isArray(obj)) {
+    if (isArray$$1(obj)) {
         for (i = 0, len = obj.length; i < len; i++) {
             result = fn.call(context, obj[i], i, obj);
         }
     }
     else {
-        keys = getKeys(obj);
+        keys = getKeys$$1(obj);
         for (i = 0, len = keys.length; i < len; i++) {
             item = keys[i];
             result = fn.call(context, item, obj[item], obj);
@@ -1418,8 +1480,8 @@ function each(obj, fn, context) {
     }
     return result;
 }
-function matchPair(obj, attrs) {
-    var keys = getKeys(attrs), len = keys.length, key, i;
+function matchPair$$1(obj, attrs) {
+    var keys = getKeys$$1(attrs), len = keys.length, key, i;
     for (i = 0; i < len; i++) {
         key = keys[i];
         if (attrs[key] !== obj[key] || !(key in obj))
@@ -1427,26 +1489,26 @@ function matchPair(obj, attrs) {
     }
     return true;
 }
-function map(arr, fn, context) {
+function map$$1(arr, fn, context) {
     if (context === void 0) { context = null; }
     var newArr = [], result;
-    each(arr, function (item, index) {
+    each$$1(arr, function (item, index) {
         result = fn.call(context, item, index);
         if (result)
             newArr.push(result);
     });
     return newArr;
 }
-function filter(obj, fn, context) {
+function filter$$1(obj, fn, context) {
     if (context === void 0) { context = null; }
     var matches = [];
-    each(obj, function (item, index) {
+    each$$1(obj, function (item, index) {
         if (fn.call(context, item, index, obj))
             matches.push(item);
     });
     return matches;
 }
-function filterOne(arr, fn, context) {
+function filterOne$$1(arr, fn, context) {
     if (context === void 0) { context = null; }
     var i, item, len = arr.length;
     for (i = 0; i < len; i++) {
@@ -1455,30 +1517,33 @@ function filterOne(arr, fn, context) {
     }
     return false;
 }
-function merge(obj, obj2) {
+function merge$$1(obj, obj2) {
     var prop;
+    if (isEmpty$$1(obj))
+        return obj2;
     for (prop in obj2) {
         try {
-            obj[prop] = isObject(obj2[prop]) ? merge(obj[prop], obj2[prop]) : obj2[prop];
+            obj[prop] = isObject$$1(obj2[prop]) ? merge$$1(obj[prop], obj2[prop]) : obj2[prop];
         }
         catch (e) {
             obj[prop] = obj2[prop];
         }
     }
+    return obj;
 }
-function findItem(arr, value) {
+function findItem$$1(arr, value) {
     return arr.indexOf(value) !== -1;
 }
-function toString(exp) {
+function toString$$1(exp) {
     return exp + "";
 }
-function formatEvent(eventName) {
+function formatEvent$$1(eventName) {
     return eventName.slice(2).toLowerCase();
 }
-function toInitialUpperCase(string) {
+function toInitialUpperCase$$1(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
 }
-function defineProp(obj, prop, getter, setter) {
+function defineProp$$1(obj, prop, getter, setter) {
     var descriptor = {
         enumerable: false,
         configurable: true,
@@ -1487,7 +1552,7 @@ function defineProp(obj, prop, getter, setter) {
     };
     Object.defineProperty(obj, prop, descriptor);
 }
-function getKeys(obj) {
+function getKeys$$1(obj) {
     return Object.keys(obj);
 }
 
@@ -1551,7 +1616,7 @@ function route(routeName, routePath) {
 }
 
 var app = {
-    baseUrl: 'http://samples.openweathermap.org/data/2.5'
+    baseUrl: 'https://httpbin.org'
 };
 
 function bootable(constructor) {
@@ -1651,7 +1716,7 @@ function collection(proto, attrName) {
  */
 function validate(validationFn) {
     return function (proto, setterName, descriptor) {
-        if (!isFunction(validationFn)) {
+        if (!isFunction$$1(validationFn)) {
             throw TypeError("The @validate() decorator, " +
                 "applied to '" + setterName + "()', requires a " +
                 "valid validator function as parameter to be " +
@@ -1739,23 +1804,20 @@ var TodoController = (function (_super) {
     };
     TodoController.prototype.editTodo = function (id) {
         return __awaiter(this, void 0, void 0, function () {
-            var todo, response;
+            var responseTodo, todo;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         todo = new TodoModel();
-                        return [4 /*yield*/, this.collection.fetch({
-                                parameters: {
-                                    'q': 'London',
-                                    'appid': 'b1b15e88fa797225412429c1c50c122a1'
-                                },
+                        todo.setAuthor('Peter')
+                            .setBody('This is a todo body!');
+                        return [4 /*yield*/, todo.save({
                                 headers: {
-                                    'Allow-Control-Allow-Origin': '*'
+                                    'Authorization': 'Basic YWRtaW5pc3RyYWRvcjphbGJhbW9sYW11Y2hv'
                                 }
                             })];
                     case 1:
-                        response = _a.sent();
-                        this.render('view.todo', { id: response.coord.lat });
+                        responseTodo = _a.sent();
                         return [2 /*return*/];
                 }
             });
@@ -1885,7 +1947,7 @@ var TodoService = (function (_super) {
     __extends(TodoService, _super);
     function TodoService() {
         var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.endPoint = '/weather';
+        _this.endPoint = '/post';
         return _this;
     }
     TodoService.prototype.getResponse = function (response) {

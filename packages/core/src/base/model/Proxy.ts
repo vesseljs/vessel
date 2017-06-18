@@ -15,7 +15,7 @@ export class AttribProxy {
      *
      * @type {any{} }
      */
-    public data = <any>{};
+    private data = <any>{};
 
     /**
      * Setups a new attribute, installs
@@ -33,6 +33,10 @@ export class AttribProxy {
                 this.data[name] = value;
             }
         )
+    }
+
+    public getAttrs() {
+        return this.data;
     }
 
 }

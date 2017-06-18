@@ -13,9 +13,11 @@ export { BaseTypes } from './src/base/BaseTypes';
 
 export { Vessel } from './src/base/Vessel';
 
+
 export { Bridge } from './src/services/Bridge';
 export { RemoteService } from './src/services/RemoteService';
 export { Service } from './src/services/Service';
+export { HttpMethods } from './src/services/http/HttpMethods';
 export { HttpBridge } from './src/services/http/HttpBridge';
 export { StorageBridge } from './src/services/storage/StorageBridge';
 

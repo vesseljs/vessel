@@ -1,13 +1,12 @@
 import { Bridge } from '../Bridge';
-import { BaseTypes, Types } from '@vessel/core';
-import {Request} from "./Request";
+import { merge, isPost, isModel, isCollection, BaseTypes, Types } from '@vessel/core';
+import { Request } from './Request';
 
 export abstract class HttpBridge extends Bridge {
 
     protected abstract endPoint: string;
 
     protected _type = BaseTypes.HTTP_BRIDGE;
-
 
     protected abstract getResponse(response);
 
@@ -19,20 +18,30 @@ export abstract class HttpBridge extends Bridge {
 
     public abstract destroy(response);
 
-
-    public createRequest(obj, requestOptions=null) {
+    public createRequest(obj, requestCustomOptions=null) {
+        let requestOptions = this.buildJSONRequest(obj, requestCustomOptions);
+        // If it's POST (create) we don't
+        // want the {id} to be added to
+        // the url.
+        //
+        // E.g.:    /todos/{id} -> /todos
+        if ( !requestOptions.hasOwnProperty('url') ) {
+            requestOptions.url = this.getPartialUrl();
+        }
         return this.bridgeRequest(obj, this.postRequest, this.create, requestOptions);
     }
 
-    public readRequest(obj, requestOptions=null) {
-        return this.bridgeRequest(obj, this.getRequest, this.read, requestOptions);
+    public readRequest(obj, requestCustomOptions=null) {
+        return this.bridgeRequest(obj, this.getRequest, this.read, requestCustomOptions);
     }
 
-    public updateRequest(obj, requestOptions=null) {
+    public updateRequest(obj, requestCustomOptions=null) {
+        let requestOptions = this.buildJSONRequest(obj, requestCustomOptions);
         return this.bridgeRequest(obj, this.putRequest, this.update, requestOptions);
     }
 
-    public destroyRequest(obj, requestOptions=null) {
+    public destroyRequest(obj, requestCustomOptions=null) {
+        let requestOptions = this.buildJSONRequest(obj, requestCustomOptions);
         return this.bridgeRequest(obj, this.removeRequest, this.destroy, requestOptions);
     }
 
@@ -42,43 +51,41 @@ export abstract class HttpBridge extends Bridge {
     }
 
     protected getObjUrl(obj) {
-        if ( this.isModel(obj) ) {
+        if ( isModel(obj) ) {
             return this.getPartialUrl() + '/' + this.extractIdentifier(obj);
-        } else if ( this.isCollection(obj) ) {
+        } else if ( isCollection(obj) ) {
             return this.getPartialUrl();
-        } else {
-            throw new TypeError('Bridges can only be used with Model and ' +
-                'Collection classes');
         }
     }
 
-    private isModel(obj) {
-        return obj.getType() === BaseTypes.MODEL;
-    }
-
-    private isCollection(obj) {
-        return obj.getType() === BaseTypes.COLLECTION;
+    private buildJSONRequest(obj, requestCustomOptions) {
+        let requestOptions = {
+            body: obj.getAttrs(),
+            headers: {
+                'Content-type': 'application/json'
+            }
+        };
+        return merge(requestOptions, requestCustomOptions);
     }
 
     private extractIdentifier(obj) {
         let id = obj.getIdentifier();
 
         if ( !this.isValidIdentifier(id) ) {
-            throw new TypeError('Bridge: Invalid identifier ' +
-                id + ' (' + typeof id + ').');
+            throw new TypeError("Bridge: Invalid identifier '" +
+                id + "' (" + typeof id + ").");
         }
 
         return id;
     }
 
     private isValidIdentifier(exp) {
-        return typeof exp === Types.STRING ||
+        return typeof exp === Types.STRING && exp !== "" ||
                typeof exp ===  Types.NUMBER;
     }
 
     private bridgeRequest(obj, requestCb, processCb, requestOptions) {
         let self = this,
-            url = this.getObjUrl(obj),
             request,
             processedData,
             requestPromise,
@@ -88,7 +95,7 @@ export abstract class HttpBridge extends Bridge {
         request.setDefaults(requestOptions);
 
         if ( !requestOptions.hasOwnProperty('url') ) {
-            request.setUrl(url);
+            request.setUrl(this.getObjUrl(obj));
         }
 
         return new Promise((resolve, reject) => {

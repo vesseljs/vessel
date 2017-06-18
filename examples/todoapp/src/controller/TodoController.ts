@@ -17,22 +17,18 @@ export class TodoController extends BaseController {
 
     @route('todo_edit', '/edit/{id}')
     public async editTodo(id) {
-        let todo = new TodoModel();
-        /*todo.setId(id)
-            .setAuthor('Peter')
-            .setBody('This is a todo body!')*/
+        let responseTodo,
+            todo = new TodoModel();
+        todo.setAuthor('Peter')
+            .setBody('This is a todo body!');
 
-        let response = await this.collection.fetch({
-            parameters: {
-                'q' : 'London',
-                'appid' : 'b1b15e88fa797225412429c1c50c122a1'
-            },
+        responseTodo = await todo.save({
             headers: {
-                'Allow-Control-Allow-Origin': '*'
+                'Authorization':'Basic YWRtaW5pc3RyYWRvcjphbGJhbW9sYW11Y2hv'
             }
         });
 
-        this.render('view.todo', { id: response.coord.lat });
+        // this.render('view.todo', { id: response.coord.lat });
     }
 
     @route('todo_create')

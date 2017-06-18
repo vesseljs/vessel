@@ -1,5 +1,6 @@
+import { BaseTypes } from '@vessel/core';
 import { Types } from './Types';
-
+import { HttpMethods } from '@vessel/core';
 import { RegExp } from './RegExp';
 
 export function getDate() {
@@ -16,6 +17,11 @@ export function isSupported(feature) {
 
 export function isArray(arr) {
     return Array.isArray(arr);
+}
+
+export function isEmpty(obj) {
+    if (obj == null) return true;
+    return getKeys(obj).length === 0;
 }
 
 export function isArrayEmpty(arr) {
@@ -41,6 +47,23 @@ export function isString(exp: any) {
 export function isObject(exp: any) {
     return typeof exp === Types.OBJECT;
 }
+
+export function isGet(method: string) {
+    return method === HttpMethods.GET;
+}
+
+export function isPost(method: string) {
+    return method === HttpMethods.POST;
+}
+
+export function isModel(obj) {
+    return obj.getType() === BaseTypes.MODEL;
+}
+
+export function isCollection(obj) {
+    return obj.getType() === BaseTypes.COLLECTION;
+}
+
 
 
 export function each(obj, fn, context=null) {
@@ -101,6 +124,7 @@ export function filterOne(arr, fn, context=null) {
 
 export function merge(obj, obj2) {
     let prop;
+    if (isEmpty(obj)) return obj2;
     for (prop in obj2) {
         try {
             obj[prop] = isObject(obj2[prop]) ? merge(obj[prop], obj2[prop]) : obj2[prop];
@@ -108,6 +132,7 @@ export function merge(obj, obj2) {
             obj[prop] = obj2[prop];
         }
     }
+    return obj;
 }
 
 export function findItem(arr, value) {

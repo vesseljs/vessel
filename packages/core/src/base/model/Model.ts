@@ -39,20 +39,20 @@ export class Model extends Vessel implements ModelInterface {
         return this;
     }
 
-    public save() {
+    public save(requestOptions=null) {
         let bridge = this.getBridge();
         if (this.isNew()) {
-            return bridge.createRequest(this);
+            return bridge.createRequest(this, requestOptions);
         }
-        return bridge.updateRequest(this);
+        return bridge.updateRequest(this, requestOptions);
     }
 
-    public fetch() {
-        return this.getBridge().readRequest(this);
+    public fetch(requestOptions=null) {
+        return this.getBridge().readRequest(this, requestOptions=null);
     }
 
-    public remove() {
-        return this.getBridge().destroyRequest(this);
+    public remove(requestOptions=null) {
+        return this.getBridge().destroyRequest(this, requestOptions=null);
     }
 
     public getIdentifier() {
@@ -60,6 +60,10 @@ export class Model extends Vessel implements ModelInterface {
             .get('@metadata_manager')
             .getIdentifier(this.getClassName());
         return this.attr[attrName];
+    }
+
+    public getAttrs() {
+        return this.attr.getAttrs();
     }
 
     protected isNew() {
