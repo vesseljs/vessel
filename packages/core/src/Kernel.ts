@@ -8,7 +8,7 @@ import {Vessel, each } from '@vessel/core';
  */
 export class Kernel {
 
-    private VERSION = '0.0.1-DEV';
+    private VERSION = '1.0.0-PRE';
 
     private app;
 

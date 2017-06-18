@@ -6,7 +6,7 @@ export { ContainerLoader } from './src/boot/ContainerLoader';
 
 export { AbstractPackageBoot } from './src/boot/package/AbstractPackageBoot';
 
-export { Kernel } from './Kernel';
+export { Kernel } from './src/Kernel';
 
 export { BaseTypes } from './src/base/BaseTypes';
 
