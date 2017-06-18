@@ -1,6 +1,10 @@
 <p align="center">
   <img src="https://user-images.githubusercontent.com/22831717/27260150-cafd59e0-5424-11e7-9591-04b74040945d.png"/>
 </p>
+<p align="center">
+<img src="https://badge.fury.io/js/vesseljs.svg"/>
+<img src="https://img.shields.io/npm/l/express.svg"/>
+</p>
 
 # Vessel Framework
 
