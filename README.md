@@ -474,3 +474,7 @@ export class TodoView extends View {
 
 }
 ```
+
+As it is, the Virtual DOM will re-render only the needed nodes.
+
+![virtual_dom](https://user-images.githubusercontent.com/22831717/27260446-eabee854-542c-11e7-896a-1aa70195f220.gif)
