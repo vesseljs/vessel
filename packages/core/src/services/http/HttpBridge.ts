@@ -1,5 +1,5 @@
 import { Bridge } from '../Bridge';
-import { merge, isPost, isModel, isCollection, BaseTypes, Types } from '@vessel/core';
+import { merge, isModel, isCollection, BaseTypes, Types } from '@vessel/core';
 import { Request } from './Request';
 
 export abstract class HttpBridge extends Bridge {
@@ -56,6 +56,16 @@ export abstract class HttpBridge extends Bridge {
         } else if ( isCollection(obj) ) {
             return this.getPartialUrl();
         }
+    }
+
+    // isModel Alias
+    protected isModel(obj) {
+        return isModel(obj);
+    }
+
+    // isCollection Alias
+    protected isCollection(obj) {
+        return isCollection(obj);
     }
 
     private buildJSONRequest(obj, requestCustomOptions) {
