@@ -1,4 +1,9 @@
 export const app = {
-    baseUrl: 'https://httpbin.org'
+
+    // Application URL
+    baseUrl: '',
+
+    // Remote Rest API Server URL
+    remoteUrl: 'https://httpbin.org'
 
 };

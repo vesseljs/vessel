@@ -47,7 +47,7 @@ export abstract class HttpBridge extends Bridge {
 
 
     protected getPartialUrl() {
-        return this.getBaseUrl() + this.endPoint;
+        return this.getRemoteUrl() + this.endPoint;
     }
 
     protected getObjUrl(obj) {
