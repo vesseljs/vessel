@@ -61,7 +61,7 @@ export class Kernel {
     private registerAppConfig() {
         let config = this.app.registerConfig();
         return this.container.get('@metadata_manager')
-                   .addRawData('app_config', config);
+                   .setConfig(config);
     }
 
     private init() {

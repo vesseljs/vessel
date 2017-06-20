@@ -1,22 +1,26 @@
-import { Vessel, MultipleKeyObject } from '@vessel/core';
+import { Vessel, isEmpty, toRegExpPath  } from '@vessel/core';
+import { Route } from '../Route';
 
 export function route(routeName, routePath=undefined) {
     return function(proto, name, descriptor) {
-        let routes,
-            metadataManager = Vessel.$container.get('@metadata_manager');
+        let route,
+            metadataManager = Vessel.$container.get('@metadata_manager'),
+            routes = metadataManager.getRawData('cached_routes');
 
-        routes = metadataManager.getRawData('cached_routes');
+        if ( isEmpty(routes) ) routes = {};
 
-        if (!routes) {
-            routes = new MultipleKeyObject();
+
+        route = new Route(routeName);
+
+        if (routePath) {
+            route.setPath(routePath)
+                 .setRegExpPath(toRegExpPath(routePath));
         }
 
-        routes.set([routeName, routePath], {
-            routeName: routeName,
-            routePath: routePath,
-            bound: descriptor.value,
-            context: proto
-        });
+        route.setBound(descriptor.value)
+             .setContext(proto);
+
+        routes[routeName] = route;
 
         metadataManager.addRawData('cached_routes', routes);
     }

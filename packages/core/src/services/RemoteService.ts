@@ -8,9 +8,8 @@ export class RemoteService extends Service {
     protected _type = BaseTypes.REMOTE_SERVICE;
 
     protected getRemoteUrl(): string {
-        let appConfig = this.get('@metadata_manager')
-            .getRawData('app_config');
-        return appConfig.remoteUrl;
+        return this.get('@metadata_manager')
+                   .getConfig('remoteUrl');
     }
 
     protected newAjaxRequest(request: Request) {

@@ -1,4 +1,4 @@
-import { each, toInitialUpperCase, RegExp } from '@vessel/core';
+import { each, toInitialUpperCase, RegExpressions } from '@vessel/core';
 
 
 export class Request {
@@ -58,7 +58,7 @@ export class Request {
         each(parameters, function(param, value) {
             result += param + '=' + value + '&';
         }, this);
-        this.parameters = result.replace(RegExp.LAST_AMPERSAND, '');
+        this.parameters = result.replace(RegExpressions.LAST_AMPERSAND, '');
 
         return this;
     }

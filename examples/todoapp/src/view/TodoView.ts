@@ -11,7 +11,7 @@ export class TodoView extends View {
     }
 
     public onRefresh() {
-        this.renderRoute('todo_edit', ++this.state.id);
+        this.renderRoute('todo_edit', { id: ++this.state.id } );
     }
 
     public render() {

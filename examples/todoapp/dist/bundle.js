@@ -159,6 +159,14 @@ var MetadataManager$$1 = (function () {
         this.loadClass(className)[Metadata.MODEL_IDENTIFIER_KEY] = attrName;
         return this;
     };
+    MetadataManager$$1.prototype.setConfig = function (cfgObj) {
+        return this.addRawData('app_config', cfgObj);
+    };
+    MetadataManager$$1.prototype.getConfig = function (configName) {
+        if (configName === void 0) { configName = undefined; }
+        return this.getRawData('app_config')[configName] ||
+            this.getRawData('app_config');
+    };
     /**
      * Setter for add any kind of metadata,
      * so any dev can use decorators
@@ -440,7 +448,7 @@ var AbstractPackageBoot = (function () {
  */
 var Kernel$$1 = (function () {
     function Kernel$$1(app) {
-        this.VERSION = '0.0.1-DEV';
+        this.VERSION = '1.0.0-PRE';
         this.app = app;
     }
     Kernel$$1.prototype.boot = function () {
@@ -484,7 +492,7 @@ var Kernel$$1 = (function () {
     Kernel$$1.prototype.registerAppConfig = function () {
         var config = this.app.registerConfig();
         return this.container.get('@metadata_manager')
-            .addRawData('app_config', config);
+            .setConfig(config);
     };
     Kernel$$1.prototype.init = function () {
         var container = this.container;
@@ -517,6 +525,16 @@ BaseTypes.BRIDGE = 'bridge';
 BaseTypes.HTTP_BRIDGE = 'http_bridge';
 BaseTypes.STORAGE_BRIDGE = 'storage_bridge';
 
+var Types = (function () {
+    function Types() {
+    }
+    return Types;
+}());
+Types.STRING = 'string';
+Types.OBJECT = 'object';
+Types.FUNCTION = 'function';
+Types.NUMBER = 'number';
+
 /**
  * Vessel's Main class.
  *
@@ -527,6 +545,14 @@ var Vessel$$1 = (function () {
     function Vessel$$1() {
         this._type = BaseTypes.VESSEL;
     }
+    Vessel$$1.detectBrowserFeatures = function () {
+        return {
+            WeakMap: isSupported$$1(window.WeakMap),
+            pushState: isSupported$$1(window.history)
+                && isSupported$$1(window.history.pushState),
+            onhashchange: "onhashchange" in window
+        };
+    };
     Object.defineProperty(Vessel$$1.prototype, "container", {
         /**
          * Container: Alias
@@ -561,6 +587,7 @@ var Vessel$$1 = (function () {
  *
  */
 Vessel$$1.$container = new ContainerLoader$$1().boot();
+Vessel$$1.can = Vessel$$1.detectBrowserFeatures();
 
 var Service$$1 = (function (_super) {
     __extends(Service$$1, _super);
@@ -589,10 +616,9 @@ var RemoteService$$1 = (function (_super) {
         _this._type = BaseTypes.REMOTE_SERVICE;
         return _this;
     }
-    RemoteService$$1.prototype.getBaseUrl = function () {
-        var appConfig = this.get('@metadata_manager')
-            .getRawData('app_config');
-        return appConfig.baseUrl;
+    RemoteService$$1.prototype.getRemoteUrl = function () {
+        return this.get('@metadata_manager')
+            .getConfig('remoteUrl');
     };
     RemoteService$$1.prototype.newAjaxRequest = function (request) {
         var url = request.fullUrl, method = request.getMethod(), headers = request.getHeaders(), params = request.getParameters(), body = request.getBody();
@@ -702,7 +728,7 @@ var Request = (function () {
         each$$1(parameters, function (param, value) {
             result += param + '=' + value + '&';
         }, this);
-        this.parameters = result.replace(RegExp.LAST_AMPERSAND, '');
+        this.parameters = result.replace(RegExpressions.LAST_AMPERSAND, '');
         return this;
     };
     Request.prototype.getParameters = function () {
@@ -765,7 +791,7 @@ var HttpBridge$$1 = (function (_super) {
         return this.bridgeRequest(obj, this.removeRequest, this.destroy, requestOptions);
     };
     HttpBridge$$1.prototype.getPartialUrl = function () {
-        return this.getBaseUrl() + this.endPoint;
+        return this.getRemoteUrl() + this.endPoint;
     };
     HttpBridge$$1.prototype.getObjUrl = function (obj) {
         if (isModel$$1(obj)) {
@@ -774,6 +800,14 @@ var HttpBridge$$1 = (function (_super) {
         else if (isCollection$$1(obj)) {
             return this.getPartialUrl();
         }
+    };
+    // isModel Alias
+    HttpBridge$$1.prototype.isModel = function (obj) {
+        return isModel$$1(obj);
+    };
+    // isCollection Alias
+    HttpBridge$$1.prototype.isCollection = function (obj) {
+        return isCollection$$1(obj);
     };
     HttpBridge$$1.prototype.buildJSONRequest = function (obj, requestCustomOptions) {
         var requestOptions = {
@@ -1345,80 +1379,26 @@ var Collection$$1 = (function (_super) {
     return Collection$$1;
 }(Vessel$$1));
 
-var BaseApp$$1 = (function () {
-    function BaseApp$$1() {
-        this.browserBoot();
+var BaseApp = (function () {
+    function BaseApp() {
     }
-    BaseApp$$1.prototype.browserBoot = function () {
-        this.detectBrowserFeatures();
-        return this;
-    };
-    BaseApp$$1.prototype.detectBrowserFeatures = function () {
-        this.can = {
-            WeakMap: isSupported$$1(window.WeakMap)
-        };
-        return this;
-    };
-    return BaseApp$$1;
+    return BaseApp;
 }());
 
-var Types = (function () {
-    function Types() {
+var RegExpressions = (function () {
+    function RegExpressions() {
     }
-    return Types;
+    return RegExpressions;
 }());
-Types.STRING = 'string';
-Types.OBJECT = 'object';
-Types.FUNCTION = 'function';
-Types.NUMBER = 'number';
-
-var RegExp = (function () {
-    function RegExp() {
-    }
-    return RegExp;
-}());
-RegExp.EVENT_EXP = /^on/;
-RegExp.LAST_AMPERSAND = /\&$/igm;
-
-/**
- * MultipleKeyObject
- *
- * Provides a way to set
- * values with multiple keys.
- *
- */
-var MultipleKeyObject$$1 = (function () {
-    function MultipleKeyObject$$1() {
-        this.container = {};
-    }
-    MultipleKeyObject$$1.prototype.set = function (keyGroup, value) {
-        var masterKey = keyGroup[0];
-        for (var i = 0, len = keyGroup.length; i < len; i++) {
-            var key = keyGroup[i];
-            if (this.has(key)) {
-                return this.container[key] = value;
-            }
-            if (key) {
-                defineProp$$1(this.container, key, function getter() {
-                    return this["$" + masterKey];
-                }, function setter(v) {
-                    return this["$" + masterKey] = v;
-                });
-            }
-        }
-        return this.container[masterKey] = value;
-    };
-    MultipleKeyObject$$1.prototype.has = function (key) {
-        return this.container.hasOwnProperty(key);
-    };
-    MultipleKeyObject$$1.prototype.get = function (key) {
-        return this.container[key];
-    };
-    return MultipleKeyObject$$1;
-}());
+RegExpressions.EVENT_EXP = /^on/i;
+RegExpressions.LAST_AMPERSAND = /\&$/;
+RegExpressions.LAST_URL_SLASH = /\/+$/;
+RegExpressions.ROUTE_PATH_PARAMETER = /(:)(\w+)/g;
+RegExpressions.GET_PARAMETER = /\?([\w\&\=]*)/;
 
 function isSupported$$1(feature) {
-    return typeof feature == Types.FUNCTION;
+    return typeof feature === Types.FUNCTION ||
+        typeof feature === Types.OBJECT;
 }
 function isArray$$1(arr) {
     return Array.isArray(arr);
@@ -1436,7 +1416,7 @@ function isArrayEmpty$$1(arr) {
     return false;
 }
 function isEvent$$1(exp) {
-    return RegExp.EVENT_EXP.test(exp);
+    return RegExpressions.EVENT_EXP.test(exp);
 }
 function isFunction$$1(fn) {
     if (fn == undefined)
@@ -1454,7 +1434,6 @@ function isObject$$1(exp) {
 function isGet$$1(method) {
     return method === HttpMethods.GET;
 }
-
 function isModel$$1(obj) {
     return obj.getType() === BaseTypes.MODEL;
 }
@@ -1519,8 +1498,6 @@ function filterOne$$1(arr, fn, context) {
 }
 function merge$$1(obj, obj2) {
     var prop;
-    if (isEmpty$$1(obj))
-        return obj2;
     for (prop in obj2) {
         try {
             obj[prop] = isObject$$1(obj2[prop]) ? merge$$1(obj[prop], obj2[prop]) : obj2[prop];
@@ -1540,8 +1517,14 @@ function toString$$1(exp) {
 function formatEvent$$1(eventName) {
     return eventName.slice(2).toLowerCase();
 }
+function removeLastSlash$$1(url) {
+    return url.replace(RegExpressions.LAST_URL_SLASH, url);
+}
 function toInitialUpperCase$$1(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
+}
+function toRegExpPath$$1(pathStr) {
+    return new RegExp('^' + pathStr.replace(RegExpressions.ROUTE_PATH_PARAMETER, "([^\/]+)") + '$');
 }
 function defineProp$$1(obj, prop, getter, setter) {
     var descriptor = {
@@ -1555,28 +1538,160 @@ function defineProp$$1(obj, prop, getter, setter) {
 function getKeys$$1(obj) {
     return Object.keys(obj);
 }
+function getCurrentUrl$$1() {
+    return window.location.href;
+}
 
 // Base
 
 // Services
 
+var Strategy = (function () {
+    function Strategy(strategy) {
+        this.currentStrategy = strategy;
+    }
+    Strategy.prototype.getStrategy = function () {
+        return this.currentStrategy;
+    };
+    Strategy.prototype.setStrategy = function (strategy) {
+        this.currentStrategy = strategy;
+        return this;
+    };
+    Strategy.prototype.isHistory = function () {
+        return this.getStrategy() === Strategy.HistoryStrategy;
+    };
+    Strategy.prototype.isHash = function () {
+        return this.getStrategy() === Strategy.HashStrategy;
+    };
+    return Strategy;
+}());
+Strategy.HashStrategy = 'hash';
+Strategy.HistoryStrategy = 'history';
+
+var Fragment = (function () {
+    function Fragment(url) {
+        if (url === void 0) { url = undefined; }
+        if (url) {
+            this.setUrl(url);
+        }
+        else {
+            this.findOutUrl();
+        }
+    }
+    Fragment.prototype.findOutUrl = function () {
+        return this.setUrl(getCurrentUrl$$1().replace(Router.getBaseUrl(), ''));
+    };
+    Object.defineProperty(Fragment.prototype, "container", {
+        get: function () {
+            return Vessel$$1.$container;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Fragment.prototype.getUrl = function () {
+        return this.url;
+    };
+    Fragment.prototype.setUrl = function (url) {
+        this.url = removeLastSlash$$1(url);
+        return this;
+    };
+    Fragment.prototype.resolve = function () {
+        var route = this.matchRoute();
+        // 404. Not Route Found
+        if (!route)
+            return false;
+        Router.onRouteFound(route, this.getParams(route));
+    };
+    Fragment.prototype.matchRoute = function () {
+        var routes = Router.getAllRoutes(), routeNames = getKeys$$1(routes);
+        for (var i = 0, len = routeNames.length; i < len; i++) {
+            var routeName = routeNames[i], routeObj = routes[routeName];
+            if (routeObj.getRegExpPath().test(this.getUrl()))
+                return routeObj;
+        }
+        return false;
+    };
+    Fragment.prototype.getParams = function (route) {
+        return route.getRegExpPath().exec(this.getUrl()).slice(1);
+    };
+    return Fragment;
+}());
+
 var Router = (function () {
     function Router() {
+        this.strategy = new Strategy(Strategy.HistoryStrategy);
     }
-    Router.prototype.renderRoute = function (routeName) {
-        var args = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            args[_i - 1] = arguments[_i];
+    Router.prototype.boot = function () {
+        this.listen();
+    };
+    Router.prototype.setStrategy = function (strategy) {
+        this.strategy = strategy;
+        return this;
+    };
+    Router.prototype.getStrategy = function () {
+        return this.strategy;
+    };
+    Router.prototype.renderRoute = function (routeName, routeParamsObj) {
+        var renderArgs = [];
+        for (var _i = 2; _i < arguments.length; _i++) {
+            renderArgs[_i - 2] = arguments[_i];
         }
-        var controller, route, cachedRoutes, container = Vessel$$1.$container, metadataManager = container.get('@metadata_manager');
-        cachedRoutes = metadataManager.getRawData('cached_routes');
-        route = cachedRoutes.get(routeName);
-        controller = container.loadModule(route.context.constructor);
-        if (!route) {
-            throw new TypeError("Cannot render non-existent route: '" + routeName + "'.");
+        return this.go.apply(this, [routeName, routeParamsObj].concat(renderArgs));
+    };
+    Router.prototype.go = function (routeName, routeParamsObj) {
+        var renderArgs = [];
+        for (var _i = 2; _i < arguments.length; _i++) {
+            renderArgs[_i - 2] = arguments[_i];
         }
-        return (_a = route.bound).call.apply(_a, [controller].concat(args));
-        var _a;
+        var generatedPath, route = this.getRouteByName(routeName);
+        each$$1(routeParamsObj, function (param, value) {
+            route.setParameter(param, value);
+        });
+        generatedPath = route.getResult();
+        var fragment = this.generateFragment(generatedPath);
+        this.push(generatedPath);
+        fragment.resolve();
+    };
+    Router.prototype.generateFragment = function (generatedPath) {
+        return Router.generatedFragment = new Fragment(generatedPath);
+    };
+    Router.prototype.push = function (path) {
+        window.history.pushState({}, '', Router.getBaseUrl() + path);
+    };
+    Router.prototype.listen = function () {
+        if (this.getStrategy().isHistory() && Vessel$$1.can.pushState) {
+            window.addEventListener('popstate', Router.onRouteChange);
+        }
+        else if (this.getStrategy().isHash() && Vessel$$1.can.onhashchange) {
+            window.addEventListener('hashchange', Router.onRouteChange);
+            // fallback
+        }
+        else {
+        }
+    };
+    Router.prototype.getRouteByName = function (name) {
+        return Router.getAllRoutes()[name];
+    };
+    Router.getAllRoutes = function () {
+        return Vessel$$1.$container
+            .get('@metadata_manager')
+            .getRawData('cached_routes');
+    };
+    Router.getBaseUrl = function () {
+        return removeLastSlash$$1(Vessel$$1.$container
+            .get('@metadata_manager')
+            .getConfig('baseUrl'));
+    };
+    Router.onRouteChange = function () {
+        var fragment = Router.generatedFragment
+            ? Router.generatedFragment
+            : new Fragment();
+        Router.generatedFragment = void 0;
+        return fragment.resolve();
+    };
+    Router.onRouteFound = function (route, fragmentArgs) {
+        var controller = Vessel$$1.$container.loadModule(route.getContext().constructor);
+        return route.getBound().apply(controller, fragmentArgs);
     };
     return Router;
 }());
@@ -1597,26 +1712,78 @@ var RouterBoot = (function (_super) {
     return RouterBoot;
 }(AbstractPackageBoot));
 
+var Route = (function () {
+    function Route(name) {
+        this.name = name;
+    }
+    Route.prototype.setParameter = function (param, value) {
+        var path = this.generatedPath
+            ? this.generatedPath
+            : this.path;
+        return this.generatedPath = path.replace(':' + param, value);
+    };
+    Route.prototype.getResult = function () {
+        var generated = this.generatedPath;
+        this.generatedPath = void 0;
+        return generated;
+    };
+    Route.prototype.getName = function () {
+        return this.name;
+    };
+    Route.prototype.getPath = function () {
+        return this.path;
+    };
+    Route.prototype.setPath = function (path) {
+        this.path = path;
+        return this;
+    };
+    Route.prototype.getRegExpPath = function () {
+        return this.pathExp;
+    };
+    Route.prototype.setRegExpPath = function (pathExp) {
+        this.pathExp = pathExp;
+        return this;
+    };
+    Route.prototype.getBound = function () {
+        return this.bound;
+    };
+    Route.prototype.setBound = function (bound) {
+        this.bound = bound;
+        return this;
+    };
+    Route.prototype.getContext = function () {
+        return this.context;
+    };
+    Route.prototype.setContext = function (context) {
+        this.context = context;
+        return this;
+    };
+    return Route;
+}());
+
 function route(routeName, routePath) {
     if (routePath === void 0) { routePath = undefined; }
     return function (proto, name, descriptor) {
-        var routes, metadataManager = Vessel$$1.$container.get('@metadata_manager');
-        routes = metadataManager.getRawData('cached_routes');
-        if (!routes) {
-            routes = new MultipleKeyObject$$1();
+        var route, metadataManager = Vessel$$1.$container.get('@metadata_manager'), routes = metadataManager.getRawData('cached_routes');
+        if (isEmpty$$1(routes))
+            routes = {};
+        route = new Route(routeName);
+        if (routePath) {
+            route.setPath(routePath)
+                .setRegExpPath(toRegExpPath$$1(routePath));
         }
-        routes.set([routeName, routePath], {
-            routeName: routeName,
-            routePath: routePath,
-            bound: descriptor.value,
-            context: proto
-        });
+        route.setBound(descriptor.value)
+            .setContext(proto);
+        routes[routeName] = route;
         metadataManager.addRawData('cached_routes', routes);
     };
 }
 
 var app = {
-    baseUrl: 'https://httpbin.org'
+    // Application URL
+    baseUrl: 'http://127.0.0.1/routing',
+    // Remote Rest API Server URL
+    remoteUrl: 'https://httpbin.org'
 };
 
 function bootable(constructor) {
@@ -1732,6 +1899,38 @@ function validate(validationFn) {
     };
 }
 
+var TodoController = (function (_super) {
+    __extends(TodoController, _super);
+    function TodoController() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    TodoController.prototype.indexTodo = function () {
+    };
+    TodoController.prototype.editTodo = function (id) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                this.render('view.todo', { id: id });
+                return [2 /*return*/];
+            });
+        });
+    };
+    TodoController.prototype.createTodo = function () {
+    };
+    return TodoController;
+}(Controller$$1));
+__decorate([
+    get('collection.todo')
+], TodoController.prototype, "collection", void 0);
+__decorate([
+    route('todo_index', '/')
+], TodoController.prototype, "indexTodo", null);
+__decorate([
+    route('todo_edit', '/edit/:id')
+], TodoController.prototype, "editTodo", null);
+__decorate([
+    route('todo_create')
+], TodoController.prototype, "createTodo", null);
+
 var TodoModel = (function (_super) {
     __extends(TodoModel, _super);
     function TodoModel() {
@@ -1794,51 +1993,6 @@ __decorate([
         return true;
     })
 ], TodoModel.prototype, "setBody", null);
-
-var TodoController = (function (_super) {
-    __extends(TodoController, _super);
-    function TodoController() {
-        return _super !== null && _super.apply(this, arguments) || this;
-    }
-    TodoController.prototype.indexTodo = function () {
-    };
-    TodoController.prototype.editTodo = function (id) {
-        return __awaiter(this, void 0, void 0, function () {
-            var responseTodo, todo;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        todo = new TodoModel();
-                        todo.setAuthor('Peter')
-                            .setBody('This is a todo body!');
-                        return [4 /*yield*/, todo.save({
-                                headers: {
-                                    'Authorization': 'Basic YWRtaW5pc3RyYWRvcjphbGJhbW9sYW11Y2hv'
-                                }
-                            })];
-                    case 1:
-                        responseTodo = _a.sent();
-                        return [2 /*return*/];
-                }
-            });
-        });
-    };
-    TodoController.prototype.createTodo = function () {
-    };
-    return TodoController;
-}(Controller$$1));
-__decorate([
-    get('collection.todo')
-], TodoController.prototype, "collection", void 0);
-__decorate([
-    route('todo_index', '/')
-], TodoController.prototype, "indexTodo", null);
-__decorate([
-    route('todo_edit', '/edit/{id}')
-], TodoController.prototype, "editTodo", null);
-__decorate([
-    route('todo_create')
-], TodoController.prototype, "createTodo", null);
 
 var TodoCollection = (function (_super) {
     __extends(TodoCollection, _super);
@@ -1912,7 +2066,7 @@ var TodoView = (function (_super) {
         return _this;
     }
     TodoView.prototype.onRefresh = function () {
-        this.renderRoute('todo_edit', ++this.state.id);
+        this.renderRoute('todo_edit', { id: ++this.state.id });
     };
     TodoView.prototype.render = function () {
         var div, p, i, button, input, self = this;
@@ -2012,7 +2166,7 @@ var App = (function (_super) {
         return '$App';
     };
     return App;
-}(BaseApp$$1));
+}(BaseApp));
 App = __decorate([
     bootable
 ], App);

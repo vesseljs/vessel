@@ -9,6 +9,8 @@ export { AbstractPackageBoot } from './src/boot/package/AbstractPackageBoot';
 export { Kernel } from './src/Kernel';
 
 export { BaseTypes } from './src/base/BaseTypes';
+export { Types } from './src/common/utils/Types';
+
 
 
 export { Vessel } from './src/base/Vessel';
@@ -31,8 +33,7 @@ export { Collection } from './src/base/collection/Collection';
 export { BaseApp } from './src/boot/app/App';
 
 // Common
-export { Types } from './src/common/utils/Types';
-export { RegExp } from './src/common/utils/RegExp';
+export { RegExpressions } from './src/common/utils/RegExpressions';
 export { MultipleKeyObject } from './src/common/utils/MultipleKeyObject';
 export  *  from './src/common/utils/utilities';
 

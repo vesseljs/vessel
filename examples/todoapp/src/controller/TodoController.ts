@@ -15,20 +15,11 @@ export class TodoController extends BaseController {
 
     }
 
-    @route('todo_edit', '/edit/{id}')
+    @route('todo_edit', '/edit/:id')
     public async editTodo(id) {
-        let responseTodo,
-            todo = new TodoModel();
-        todo.setAuthor('Peter')
-            .setBody('This is a todo body!');
 
-        responseTodo = await todo.save({
-            headers: {
-                'Authorization':'Basic YWRtaW5pc3RyYWRvcjphbGJhbW9sYW11Y2hv'
-            }
-        });
 
-        // this.render('view.todo', { id: response.coord.lat });
+        this.render('view.todo', { id: id });
     }
 
     @route('todo_create')

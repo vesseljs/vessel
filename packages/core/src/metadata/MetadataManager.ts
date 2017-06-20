@@ -83,6 +83,15 @@ export class MetadataManager {
         return this;
     }
 
+    public setConfig(cfgObj) {
+        return this.addRawData('app_config', cfgObj);
+    }
+
+    public getConfig(configName=undefined) {
+        return this.getRawData('app_config')[configName] ||
+            this.getRawData('app_config');
+    }
+
     /**
      * Setter for add any kind of metadata,
      * so any dev can use decorators

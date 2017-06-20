@@ -1,7 +1,7 @@
 import { BaseTypes } from '@vessel/core';
 import { Types } from './Types';
 import { HttpMethods } from '@vessel/core';
-import { RegExp } from './RegExp';
+import { RegExpressions } from './RegExpressions';
 
 export function getDate() {
 	console.log('Get date!');
@@ -12,7 +12,8 @@ export function checkDate() {
 }
 
 export function isSupported(feature) {
-	return typeof feature == Types.FUNCTION;
+	return typeof feature === Types.FUNCTION ||
+           typeof feature === Types.OBJECT;
 }
 
 export function isArray(arr) {
@@ -31,7 +32,7 @@ export function isArrayEmpty(arr) {
 }
 
 export function isEvent(exp) {
-    return RegExp.EVENT_EXP.test(exp);
+    return RegExpressions.EVENT_EXP.test(exp);
 }
 
 export function isFunction(fn) {
@@ -59,8 +60,6 @@ export function isModel(obj) {
 export function isCollection(obj) {
     return obj.getType() === BaseTypes.COLLECTION;
 }
-
-
 
 export function each(obj, fn, context=null) {
     var i, len, keys, item, result;
@@ -120,7 +119,6 @@ export function filterOne(arr, fn, context=null) {
 
 export function merge(obj, obj2) {
     let prop;
-    if (isEmpty(obj)) return obj2;
     for (prop in obj2) {
         try {
             obj[prop] = isObject(obj2[prop]) ? merge(obj[prop], obj2[prop]) : obj2[prop];
@@ -143,8 +141,17 @@ export function formatEvent(eventName) {
     return eventName.slice(2).toLowerCase();
 }
 
+export function removeLastSlash(url) {
+    return url.replace(RegExpressions.LAST_URL_SLASH, url);
+}
+
 export function toInitialUpperCase(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+export function toRegExpPath(pathStr: string) {
+    return new RegExp('^'+pathStr.replace(RegExpressions.ROUTE_PATH_PARAMETER,
+                    "([^\/]+)")+'$');
 }
 
 export function defineProp(obj, prop, getter, setter) {
@@ -159,4 +166,8 @@ export function defineProp(obj, prop, getter, setter) {
 
 export function getKeys(obj) {
     return Object.keys(obj);
+}
+
+export function getCurrentUrl() {
+    return window.location.href;
 }

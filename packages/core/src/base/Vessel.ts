@@ -1,4 +1,4 @@
-import {ContainerLoader, Container, BaseTypes} from "@vessel/core";
+import {isSupported, ContainerLoader, Container, BaseTypes} from "@vessel/core";
 
 /**
  * Vessel's Main class.
@@ -18,6 +18,17 @@ export class Vessel {
      *
      */
     public static $container: Container = new ContainerLoader().boot();
+
+    public static can = Vessel.detectBrowserFeatures();
+
+    public static detectBrowserFeatures() {
+        return {
+            WeakMap: isSupported( (<any>window).WeakMap ),
+            pushState: isSupported( <any>window.history )
+            && isSupported( <any>window.history.pushState),
+            onhashchange: "onhashchange" in window
+        }
+    }
 
     /**
      * Container: Alias
