@@ -395,7 +395,7 @@ export class TodoController extends BaseController {
     @get('collection.todo')
     public todoCollection;
 
-    @route('todo_edit', '/edit/{id}')
+    @route('todo_edit', '/edit/:id')
     public async editTodo(id, title, body) {
         let updatedTodo,
             todo = this.todoCollection.find({'id': id});
@@ -408,7 +408,7 @@ export class TodoController extends BaseController {
         return this.renderRoute('todo_view', updatedTodo.id);
     }
     
-    @route('todo_view', '/todo/{id}')
+    @route('todo_view', '/todo/:id')
     public viewTodo(id) {
         let todo = this.todoCollection.find({'id': id});
         return this.render('view.todo', { id: todo.id, title: todo.title, body: todo.body });
@@ -435,7 +435,7 @@ export class TodoView extends View {
     }
 
     public onRefresh() {
-        this.renderRoute('todo_edit', ++this.state.id);
+        this.renderRoute('todo_edit', {id: ++this.state.id});
     }
 
     public render() {
