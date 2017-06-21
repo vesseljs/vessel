@@ -5,7 +5,11 @@ export class Fragment {
 
     private url: string;
 
+    private router: Router;
+
     public constructor(url=undefined) {
+        this.router = this.container.get('@router');
+
         if (url) {
             this.setUrl(url);
         } else {
@@ -15,7 +19,7 @@ export class Fragment {
 
     private findOutUrl() {
         return this.setUrl(
-            getCurrentUrl().replace(Router.getBaseUrl(), '')
+            getCurrentUrl().replace(this.router.getBaseUrl(), '')
         );
     }
 
@@ -43,7 +47,7 @@ export class Fragment {
     }
 
     private matchRoute() {
-        let routes = Router.getAllRoutes(),
+        let routes = this.router.getAllRoutes(),
             routeNames = getKeys(routes);
         for (let i = 0, len = routeNames.length; i < len; i++) {
             let routeName = routeNames[i],

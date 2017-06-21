@@ -30,8 +30,12 @@ export abstract class View extends Vessel {
         return this.parent;
     }
 
-    protected renderRoute(routeName, ...args) {
-        return this.get('@router').renderRoute(routeName, ...args);
+    protected route(routeName, routeParams) {
+        return this.get('@router').route(routeName, routeParams);
+    }
+
+    protected routeExec(routeName, ...args) {
+        return this.get('@router').routeExec(routeName, args);
     }
 
     protected create(nodeType: string): VirtualNode {

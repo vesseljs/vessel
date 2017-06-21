@@ -7,9 +7,6 @@ export class Router {
 
     private strategy: Strategy = new Strategy(Strategy.HistoryStrategy);
 
-    public static generatedFragment;
-
-
     public boot() {
         this.listen();
     }
@@ -24,12 +21,12 @@ export class Router {
         return this.strategy;
     }
 
-
-    public renderRoute(routeName, routeParamsObj, ...renderArgs) {
-        return this.go(routeName, routeParamsObj, ...renderArgs);
+    public routeExec(routeName, args) {
+        let route = this.getRouteByName(routeName);
+        Router.onRouteFound(route, args);
     }
 
-    private go(routeName, routeParamsObj, ...renderArgs) {
+    private route(routeName, routeParamsObj=null) {
         let generatedPath,
             route = this.getRouteByName(routeName);
 
@@ -39,17 +36,14 @@ export class Router {
 
         generatedPath = route.getResult();
 
-        let fragment = this.generateFragment(generatedPath);
         this.push(generatedPath);
-        fragment.resolve();
+        return new Fragment(generatedPath).resolve();
     }
 
-    private generateFragment(generatedPath) {
-        return Router.generatedFragment = new Fragment(generatedPath);
-    }
 
     private push(path: string) {
-        window.history.pushState({}, '', Router.getBaseUrl() + path);
+        let url = path ? this.getBaseUrl() + path : this.getBaseUrl();
+        window.history.pushState({}, '', url);
     }
 
     private listen() {
@@ -65,27 +59,23 @@ export class Router {
     }
 
     public getRouteByName(name) {
-        return Router.getAllRoutes()[name];
+        return this.getAllRoutes()[name];
     }
 
-    public static getAllRoutes() {
+    public getAllRoutes() {
         return Vessel.$container
             .get('@metadata_manager')
             .getRawData('cached_routes');
     }
 
-    public static getBaseUrl() {
+    public getBaseUrl() {
         return removeLastSlash(Vessel.$container
             .get('@metadata_manager')
             .getConfig('baseUrl'));
     }
 
     public static onRouteChange() {
-        let fragment = Router.generatedFragment
-            ? Router.generatedFragment
-            : new Fragment();
-        Router.generatedFragment = void 0;
-        return fragment.resolve();
+        return new Fragment().resolve();
     }
 
     public static onRouteFound(route: Route, fragmentArgs) {

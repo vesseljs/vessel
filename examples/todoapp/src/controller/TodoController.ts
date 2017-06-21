@@ -12,12 +12,10 @@ export class TodoController extends BaseController {
 
     @route('todo_index', '/')
     public indexTodo() {
-
     }
 
     @route('todo_edit', '/edit/:id')
     public async editTodo(id) {
-
 
         this.render('view.todo', { id: id });
     }

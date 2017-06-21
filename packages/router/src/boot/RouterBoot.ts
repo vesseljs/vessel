@@ -10,7 +10,7 @@ export class RouterBoot extends AbstractPackageBoot {
     }
 
     public setup(namespace, container) {
-        namespace.router = container.get('@router');
+        namespace.router = container.get('@router').boot();
     }
 
 }

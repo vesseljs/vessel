@@ -1006,13 +1006,15 @@ var Controller$$1 = (function (_super) {
     Controller$$1.prototype.render = function (viewName, renderData) {
         return this.get('@vdom').render(viewName, renderData);
     };
-    Controller$$1.prototype.renderRoute = function (routeName) {
+    Controller$$1.prototype.route = function (routeName, routeParams) {
+        return this.get('@router').route(routeName, routeParams);
+    };
+    Controller$$1.prototype.routeExec = function (routeName) {
         var args = [];
         for (var _i = 1; _i < arguments.length; _i++) {
             args[_i - 1] = arguments[_i];
         }
-        return (_a = this.get('@router')).renderRoute.apply(_a, [routeName].concat(args));
-        var _a;
+        return this.get('@router').route(routeName, args);
     };
     return Controller$$1;
 }(Vessel$$1));
@@ -1292,13 +1294,15 @@ var View$$1 = (function (_super) {
     View$$1.prototype.getParent = function () {
         return this.parent;
     };
-    View$$1.prototype.renderRoute = function (routeName) {
+    View$$1.prototype.route = function (routeName, routeParams) {
+        return this.get('@router').route(routeName, routeParams);
+    };
+    View$$1.prototype.routeExec = function (routeName) {
         var args = [];
         for (var _i = 1; _i < arguments.length; _i++) {
             args[_i - 1] = arguments[_i];
         }
-        return (_a = this.get('@router')).renderRoute.apply(_a, [routeName].concat(args));
-        var _a;
+        return this.get('@router').routeExec(routeName, args);
     };
     View$$1.prototype.create = function (nodeType) {
         return VirtualDOM.create(nodeType);
@@ -1571,6 +1575,7 @@ Strategy.HistoryStrategy = 'history';
 var Fragment = (function () {
     function Fragment(url) {
         if (url === void 0) { url = undefined; }
+        this.router = this.container.get('@router');
         if (url) {
             this.setUrl(url);
         }
@@ -1579,7 +1584,7 @@ var Fragment = (function () {
         }
     }
     Fragment.prototype.findOutUrl = function () {
-        return this.setUrl(getCurrentUrl$$1().replace(Router.getBaseUrl(), ''));
+        return this.setUrl(getCurrentUrl$$1().replace(this.router.getBaseUrl(), ''));
     };
     Object.defineProperty(Fragment.prototype, "container", {
         get: function () {
@@ -1603,7 +1608,7 @@ var Fragment = (function () {
         Router.onRouteFound(route, this.getParams(route));
     };
     Fragment.prototype.matchRoute = function () {
-        var routes = Router.getAllRoutes(), routeNames = getKeys$$1(routes);
+        var routes = this.router.getAllRoutes(), routeNames = getKeys$$1(routes);
         for (var i = 0, len = routeNames.length; i < len; i++) {
             var routeName = routeNames[i], routeObj = routes[routeName];
             if (routeObj.getRegExpPath().test(this.getUrl()))
@@ -1631,32 +1636,23 @@ var Router = (function () {
     Router.prototype.getStrategy = function () {
         return this.strategy;
     };
-    Router.prototype.renderRoute = function (routeName, routeParamsObj) {
-        var renderArgs = [];
-        for (var _i = 2; _i < arguments.length; _i++) {
-            renderArgs[_i - 2] = arguments[_i];
-        }
-        return this.go.apply(this, [routeName, routeParamsObj].concat(renderArgs));
+    Router.prototype.routeExec = function (routeName, args) {
+        var route = this.getRouteByName(routeName);
+        Router.onRouteFound(route, args);
     };
-    Router.prototype.go = function (routeName, routeParamsObj) {
-        var renderArgs = [];
-        for (var _i = 2; _i < arguments.length; _i++) {
-            renderArgs[_i - 2] = arguments[_i];
-        }
+    Router.prototype.route = function (routeName, routeParamsObj) {
+        if (routeParamsObj === void 0) { routeParamsObj = null; }
         var generatedPath, route = this.getRouteByName(routeName);
         each$$1(routeParamsObj, function (param, value) {
             route.setParameter(param, value);
         });
         generatedPath = route.getResult();
-        var fragment = this.generateFragment(generatedPath);
         this.push(generatedPath);
-        fragment.resolve();
-    };
-    Router.prototype.generateFragment = function (generatedPath) {
-        return Router.generatedFragment = new Fragment(generatedPath);
+        return new Fragment(generatedPath).resolve();
     };
     Router.prototype.push = function (path) {
-        window.history.pushState({}, '', Router.getBaseUrl() + path);
+        var url = path ? this.getBaseUrl() + path : this.getBaseUrl();
+        window.history.pushState({}, '', url);
     };
     Router.prototype.listen = function () {
         if (this.getStrategy().isHistory() && Vessel$$1.can.pushState) {
@@ -1670,24 +1666,20 @@ var Router = (function () {
         }
     };
     Router.prototype.getRouteByName = function (name) {
-        return Router.getAllRoutes()[name];
+        return this.getAllRoutes()[name];
     };
-    Router.getAllRoutes = function () {
+    Router.prototype.getAllRoutes = function () {
         return Vessel$$1.$container
             .get('@metadata_manager')
             .getRawData('cached_routes');
     };
-    Router.getBaseUrl = function () {
+    Router.prototype.getBaseUrl = function () {
         return removeLastSlash$$1(Vessel$$1.$container
             .get('@metadata_manager')
             .getConfig('baseUrl'));
     };
     Router.onRouteChange = function () {
-        var fragment = Router.generatedFragment
-            ? Router.generatedFragment
-            : new Fragment();
-        Router.generatedFragment = void 0;
-        return fragment.resolve();
+        return new Fragment().resolve();
     };
     Router.onRouteFound = function (route, fragmentArgs) {
         var controller = Vessel$$1.$container.loadModule(route.getContext().constructor);
@@ -1707,7 +1699,7 @@ var RouterBoot = (function (_super) {
         container.registerSingleModule('@router', Router);
     };
     RouterBoot.prototype.setup = function (namespace, container) {
-        namespace.router = container.get('@router');
+        namespace.router = container.get('@router').boot();
     };
     return RouterBoot;
 }(AbstractPackageBoot));
@@ -1781,7 +1773,7 @@ function route(routeName, routePath) {
 
 var app = {
     // Application URL
-    baseUrl: 'http://127.0.0.1/routing',
+    baseUrl: 'http://localhost:3000',
     // Remote Rest API Server URL
     remoteUrl: 'https://httpbin.org'
 };
