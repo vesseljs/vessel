@@ -30,6 +30,10 @@ export abstract class View extends Vessel {
         return this.parent;
     }
 
+    public getParentElement(): Element {
+        return document.querySelector(this.getParent());
+    }
+
     protected route(routeName, routeParams) {
         return this.get('@router').route(routeName, routeParams);
     }

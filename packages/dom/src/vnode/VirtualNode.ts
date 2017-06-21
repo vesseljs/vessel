@@ -23,6 +23,15 @@ export class VirtualNode {
         return this.element;
     }
 
+    public index() {
+        // Internet explorer 6,7,8 will include
+        // comment nodes.
+        // https://developer.mozilla.org/en-US/docs/Web/API/ParentNode/children#Browser_compatibility
+        //
+        let el = this.el();
+        return Array.prototype.indexOf.call(el.parentElement.children, el);
+    }
+
     public set(props) {
         merge(this.attributes, props);
         return this;

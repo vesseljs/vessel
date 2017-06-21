@@ -16,9 +16,19 @@ export class VirtualDOM {
 
         $new = view.render();
         $old = view.getLastNode();
-        parent = document.querySelector(view.getParent());
+        parent = view.getParentElement();
 
         return view.setLastNode( this.updateNode(parent, $new, $old) );
+    }
+
+    public unrender(viewName: string) {
+        let view,
+            container = Vessel.$container;
+
+        view = container.get(viewName);
+
+        this.removeChild(view.getParentElement(), view.getLastNode().index());
+        return Vessel.$container.remove(view);
     }
 
 

@@ -12,6 +12,7 @@ export class TodoController extends BaseController {
 
     @route('todo_index', '/')
     public indexTodo() {
+        this.unrender('view.todo');
     }
 
     @route('todo_edit', '/edit/:id')

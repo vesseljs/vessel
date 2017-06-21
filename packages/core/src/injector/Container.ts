@@ -56,6 +56,10 @@ export class Container {
         return this.resolveDependencies(name);
     }
 
+    public remove(constructor) {
+        return this.cache.delete(constructor);
+    }
+
     /**
      * Loads a module by its constructor,
      * if it's already instantiated it will

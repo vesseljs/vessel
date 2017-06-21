@@ -8,6 +8,10 @@ export class Controller extends Vessel {
       return this.get('@vdom').render(viewName, renderData);
     }
 
+    protected unrender(viewName) {
+        return this.get('@vdom').unrender(viewName);
+    }
+
     protected route(routeName, routeParams) {
         return this.get('@router').route(routeName, routeParams);
     }

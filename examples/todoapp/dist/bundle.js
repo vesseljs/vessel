@@ -285,6 +285,9 @@ var Container$$1 = (function () {
     Container$$1.prototype.get = function (name) {
         return this.resolveDependencies(name);
     };
+    Container$$1.prototype.remove = function (constructor) {
+        return this.cache.delete(constructor);
+    };
     /**
      * Loads a module by its constructor,
      * if it's already instantiated it will
@@ -1006,6 +1009,9 @@ var Controller$$1 = (function (_super) {
     Controller$$1.prototype.render = function (viewName, renderData) {
         return this.get('@vdom').render(viewName, renderData);
     };
+    Controller$$1.prototype.unrender = function (viewName) {
+        return this.get('@vdom').unrender(viewName);
+    };
     Controller$$1.prototype.route = function (routeName, routeParams) {
         return this.get('@router').route(routeName, routeParams);
     };
@@ -1032,6 +1038,14 @@ var VirtualNode = (function () {
     };
     VirtualNode.prototype.el = function () {
         return this.element;
+    };
+    VirtualNode.prototype.index = function () {
+        // Internet explorer 6,7,8 will include
+        // comment nodes.
+        // https://developer.mozilla.org/en-US/docs/Web/API/ParentNode/children#Browser_compatibility
+        //
+        var el = this.el();
+        return Array.prototype.indexOf.call(el.parentElement.children, el);
     };
     VirtualNode.prototype.set = function (props) {
         merge$$1(this.attributes, props);
@@ -1170,8 +1184,14 @@ var VirtualDOM = (function () {
         view.setState(renderData);
         $new = view.render();
         $old = view.getLastNode();
-        parent = document.querySelector(view.getParent());
+        parent = view.getParentElement();
         return view.setLastNode(this.updateNode(parent, $new, $old));
+    };
+    VirtualDOM.prototype.unrender = function (viewName) {
+        var view, container = Vessel$$1.$container;
+        view = container.get(viewName);
+        this.removeChild(view.getParentElement(), view.getLastNode().index());
+        return Vessel$$1.$container.remove(view);
     };
     VirtualDOM.prototype.updateNode = function (parent, $newNode, $oldNode, childIndex) {
         if ($oldNode === void 0) { $oldNode = undefined; }
@@ -1293,6 +1313,9 @@ var View$$1 = (function (_super) {
     };
     View$$1.prototype.getParent = function () {
         return this.parent;
+    };
+    View$$1.prototype.getParentElement = function () {
+        return document.querySelector(this.getParent());
     };
     View$$1.prototype.route = function (routeName, routeParams) {
         return this.get('@router').route(routeName, routeParams);
@@ -1897,6 +1920,7 @@ var TodoController = (function (_super) {
         return _super !== null && _super.apply(this, arguments) || this;
     }
     TodoController.prototype.indexTodo = function () {
+        this.unrender('view.todo');
     };
     TodoController.prototype.editTodo = function (id) {
         return __awaiter(this, void 0, void 0, function () {
@@ -2058,7 +2082,7 @@ var TodoView = (function (_super) {
         return _this;
     }
     TodoView.prototype.onRefresh = function () {
-        this.renderRoute('todo_edit', { id: ++this.state.id });
+        this.route('todo_edit', { id: ++this.state.id });
     };
     TodoView.prototype.render = function () {
         var div, p, i, button, input, self = this;
