@@ -7,7 +7,7 @@ const
     uglify = require('gulp-uglify'),
     pump = require('pump'),
     rename = require('gulp-rename'),
-	runSeq = require('run-sequence'),
+    runSequence = require('run-sequence'),
 	browserSync = require('browser-sync').create();
 
 
@@ -32,13 +32,13 @@ gulp.task('bundle', function() {
 });
 
 gulp.task('minify', function() {
-    return gulp.src('./dist/bundle.js'),
-            rename('bundle.min.js'),
-            uglify(),
-            gulp.dest('./dist');
+    return gulp.src('./dist/bundle.js')
+		.pipe(rename('bundle.min.js'))
+		.pipe(uglify())
+		.pipe(gulp.dest('./dist'));
 });
 
-gulp.task('browser', function()  {
+gulp.task('browser', ['bundle', 'copy:html'], function()  {
     browserSync.init({
         server: {
             baseDir: './dist',
@@ -48,11 +48,28 @@ gulp.task('browser', function()  {
     });
 });
 
+gulp.task('copy:html', ['copy:assets'], function() {
+	gulp.src(['./src/*.html'])
+        .pipe(rename({
+        	dirname: ''
+        }))
+		.pipe(gulp.dest('./dist'));
+});
+
+gulp.task('copy:assets', function() {
+    gulp.src(['./src/assets/**/*'])
+        .pipe(gulp.dest('./dist/assets'));
+});
+
 gulp.task('watch', function() {
     gulp.watch(['./src/**/*.ts',
         './src/**/*.js',
-        './src/**/*.html',
-        './src/**/*.jsx'], ['bundle']);
+        './src/*.html',
+        './src/**/*.jsx'], ['bundle', 'copy:html']);
+});
+
+gulp.task('build', function() {
+   runSequence('bundle', 'copy:html');
 });
 
 gulp.task('serve', ['browser', 'watch'], function() {

@@ -5,12 +5,12 @@ const
 gulp.task('copy:package', function() {
 	gulp.src(['./packages/**/*'])
 		.pipe(gulp.dest('./dist/@vessel'));
-})
+});
 
 gulp.task('copy:toexample', function() {
 	gulp.src(['./packages/**/*'])
 		.pipe(gulp.dest('./examples/todoapp/node_modules/@vessel'));
-})
+});
 
 gulp.task('default', function(cb){
 	 runSequence('copy:package','copy:toexample');

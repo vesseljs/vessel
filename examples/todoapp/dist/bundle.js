@@ -1369,9 +1369,6 @@ var Collection$$1 = (function (_super) {
     };
     Collection$$1.prototype.removeById = function () {
     };
-    Collection$$1.prototype.willRetrieve = function () {
-        return this;
-    };
     Collection$$1.prototype.getModel = function () {
         return this.model;
     };
@@ -1840,21 +1837,6 @@ function identifier(proto, attrName) {
     var metadataManager = Vessel$$1.$container.get('@metadata_manager'), className = proto.getClassName();
     metadataManager.setIdentifier(className, attrName);
 }
-
-/**
- * Decorator: @collection
- *
- * Adds the name of the custom collection attribute to
- * the metadata manager.
- *
- * This will be used by the framework so it knows
- * what is the collection array attribute which
- * will be used to store the models.
- *
- *
- * @param proto
- * @param attrName
- */
 
 /**
  * Decorator: @validate( <validate function> )
