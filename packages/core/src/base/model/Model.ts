@@ -19,6 +19,8 @@ export class Model extends Vessel implements ModelInterface {
      */
     protected attr: any;
 
+    public static MODEL_PROXY_PROPERTY_NAME = 'attr';
+
 
     public constructor() {
         super();
@@ -59,11 +61,11 @@ export class Model extends Vessel implements ModelInterface {
         let attrName = this
             .get('@metadata_manager')
             .getIdentifier(this.getClassName());
-        return this.attr[attrName];
+        return this[Model.MODEL_PROXY_PROPERTY_NAME][attrName];
     }
 
     public getAttrs() {
-        return this.attr.getAttrs();
+        return this[Model.MODEL_PROXY_PROPERTY_NAME].getAttrs();
     }
 
     protected isNew() {
@@ -78,6 +80,7 @@ export class Model extends Vessel implements ModelInterface {
      */
     protected _createProxy() {
         let attrs,
+            proxyPropName = Model.MODEL_PROXY_PROPERTY_NAME,
             metadataManager = this.get('@metadata_manager');
 
         attrs = metadataManager.getAttributes(this.getClassName());
@@ -87,10 +90,10 @@ export class Model extends Vessel implements ModelInterface {
                 " with no metadata.");
         }
 
-        this.attr = new AttribProxy();
+        this[proxyPropName]= new AttribProxy();
 
         each(attrs, function(attrName) {
-            this.attr.addAttribute(attrName);
+            this[proxyPropName].addAttribute(attrName);
         }, this);
     }
 

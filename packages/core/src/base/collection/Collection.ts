@@ -1,39 +1,32 @@
-import { Vessel, isArray, filterOne, filter, matchPair, map, BaseTypes } from '@vessel/core';
+import { Vessel, Model, filterOne, filter, matchPair, map, BaseTypes } from '@vessel/core';
 import { ModelInterface } from '@vessel/types/definitions';
 
-let prefixAttr = 'attr';
 
 export abstract class Collection extends Vessel {
 
     protected _type = BaseTypes.COLLECTION;
 
-    public collection: ModelInterface[];
+    protected _collection: ModelInterface[] = [];
 
-    public model;
+    protected model;
 
     /**
      * Stores the bridge service.
      */
     protected bridge: string;
 
-    public add(...args) {
-        let collection = this.getCollection(),
-            Model = this.model;
-        try {
-            collection.push(new Model(...args));
-        } catch(e) {
-            if (e instanceof TypeError) {
-                if ( !isArray(collection) ) {
-                    console.error("TypeError: The collection '" +
-                        collection+ "' (" + typeof collection +
-                        ") must be an array.");
-                }
-            }
+    public add(model) {
+        let collection = this.getCollection();
+
+        if (! (model instanceof this.getModel()) ) {
+            throw new TypeError(this.getClassName() + ': cannot ' +
+                'add ' + model + ' (' + typeof model + ') as a model of ' +
+                this.getModel().getClassName());
         }
-    }
 
-    public create() {
+        collection.push(model);
 
+        return model;
     }
 
     public fetch(requestOptions=null) {
@@ -42,19 +35,19 @@ export abstract class Collection extends Vessel {
 
     public find(attrs) {
         return filterOne(this.getCollection(), function(item){
-            return matchPair(item[prefixAttr], attrs);
+            return matchPair(item[Model.MODEL_PROXY_PROPERTY_NAME], attrs);
         });
     }
 
     public findAll(attrs) {
         return filter(this.getCollection(), function(item){
-            return matchPair(item[prefixAttr], attrs);
+            return matchPair(item[Model.MODEL_PROXY_PROPERTY_NAME], attrs);
         });
     }
 
     public pull(attrName) {
         return map(this.getCollection(), function(item){
-            return item[prefixAttr][attrName];
+            return item[Model.MODEL_PROXY_PROPERTY_NAME][attrName];
         });
     }
 
@@ -70,17 +63,12 @@ export abstract class Collection extends Vessel {
 
     }
 
-    protected willRetrieve() {
-        return this;
+    protected getModel() {
+        return this.model;
     }
 
     protected getCollection() {
-        let name,
-            metadataManager = this.get('@metadata_manager');
-
-         name = metadataManager.getCollection(this.getClassName());
-
-        return this[name];
+        return this._collection;
     }
 
     protected getBridge() {

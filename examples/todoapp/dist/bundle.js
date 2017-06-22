@@ -83,7 +83,6 @@ var Metadata = (function () {
 }());
 Metadata.MODEL_ATTRIBUTES_KEY = 'attributes';
 Metadata.MODEL_IDENTIFIER_KEY = 'identifier';
-Metadata.COLLECTION_ATTRIBUTE_KEY = 'collection';
 Metadata.DEPENDENCIES_KEY = 'dependencies';
 
 /**
@@ -143,13 +142,6 @@ var MetadataManager$$1 = (function () {
     };
     MetadataManager$$1.prototype.setAttribute = function (className, attrName) {
         this.createOrPush(className, Metadata.MODEL_ATTRIBUTES_KEY, attrName);
-        return this;
-    };
-    MetadataManager$$1.prototype.getCollection = function (className) {
-        return this.retrieve(className, Metadata.COLLECTION_ATTRIBUTE_KEY);
-    };
-    MetadataManager$$1.prototype.setCollection = function (className, attrName) {
-        this.loadClass(className)[Metadata.COLLECTION_ATTRIBUTE_KEY] = attrName;
         return this;
     };
     MetadataManager$$1.prototype.getIdentifier = function (className) {
@@ -945,10 +937,10 @@ var Model$$1 = (function (_super) {
         var attrName = this
             .get('@metadata_manager')
             .getIdentifier(this.getClassName());
-        return this.attr[attrName];
+        return this[Model$$1.MODEL_PROXY_PROPERTY_NAME][attrName];
     };
     Model$$1.prototype.getAttrs = function () {
-        return this.attr.getAttrs();
+        return this[Model$$1.MODEL_PROXY_PROPERTY_NAME].getAttrs();
     };
     Model$$1.prototype.isNew = function () {
         return !this.getIdentifier();
@@ -960,15 +952,15 @@ var Model$$1 = (function (_super) {
      * @private
      */
     Model$$1.prototype._createProxy = function () {
-        var attrs, metadataManager = this.get('@metadata_manager');
+        var attrs, proxyPropName = Model$$1.MODEL_PROXY_PROPERTY_NAME, metadataManager = this.get('@metadata_manager');
         attrs = metadataManager.getAttributes(this.getClassName());
         if (isArrayEmpty$$1(attrs)) {
             throw TypeError("Attempt to create a proxy" +
                 " with no metadata.");
         }
-        this.attr = new AttribProxy();
+        this[proxyPropName] = new AttribProxy();
         each$$1(attrs, function (attrName) {
-            this.attr.addAttribute(attrName);
+            this[proxyPropName].addAttribute(attrName);
         }, this);
     };
     /**
@@ -998,6 +990,7 @@ var Model$$1 = (function (_super) {
     };
     return Model$$1;
 }(Vessel$$1));
+Model$$1.MODEL_PROXY_PROPERTY_NAME = 'attr';
 
 var Controller$$1 = (function (_super) {
     __extends(Controller$$1, _super);
@@ -1333,34 +1326,23 @@ var View$$1 = (function (_super) {
     return View$$1;
 }(Vessel$$1));
 
-var prefixAttr = 'attr';
 var Collection$$1 = (function (_super) {
     __extends(Collection$$1, _super);
     function Collection$$1() {
         var _this = _super !== null && _super.apply(this, arguments) || this;
         _this._type = BaseTypes.COLLECTION;
+        _this._collection = [];
         return _this;
     }
-    Collection$$1.prototype.add = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
+    Collection$$1.prototype.add = function (model) {
+        var collection = this.getCollection();
+        if (!(model instanceof this.getModel())) {
+            throw new TypeError(this.getClassName() + ': cannot ' +
+                'add ' + model + ' (' + typeof model + ') as a model of ' +
+                this.getModel().getClassName());
         }
-        var collection = this.getCollection(), Model$$1 = this.model;
-        try {
-            collection.push(new (Model$$1.bind.apply(Model$$1, [void 0].concat(args)))());
-        }
-        catch (e) {
-            if (e instanceof TypeError) {
-                if (!isArray$$1(collection)) {
-                    console.error("TypeError: The collection '" +
-                        collection + "' (" + typeof collection +
-                        ") must be an array.");
-                }
-            }
-        }
-    };
-    Collection$$1.prototype.create = function () {
+        collection.push(model);
+        return model;
     };
     Collection$$1.prototype.fetch = function (requestOptions) {
         if (requestOptions === void 0) { requestOptions = null; }
@@ -1368,17 +1350,17 @@ var Collection$$1 = (function (_super) {
     };
     Collection$$1.prototype.find = function (attrs) {
         return filterOne$$1(this.getCollection(), function (item) {
-            return matchPair$$1(item[prefixAttr], attrs);
+            return matchPair$$1(item[Model$$1.MODEL_PROXY_PROPERTY_NAME], attrs);
         });
     };
     Collection$$1.prototype.findAll = function (attrs) {
         return filter$$1(this.getCollection(), function (item) {
-            return matchPair$$1(item[prefixAttr], attrs);
+            return matchPair$$1(item[Model$$1.MODEL_PROXY_PROPERTY_NAME], attrs);
         });
     };
     Collection$$1.prototype.pull = function (attrName) {
         return map$$1(this.getCollection(), function (item) {
-            return item[prefixAttr][attrName];
+            return item[Model$$1.MODEL_PROXY_PROPERTY_NAME][attrName];
         });
     };
     Collection$$1.prototype.sort = function () {
@@ -1390,10 +1372,11 @@ var Collection$$1 = (function (_super) {
     Collection$$1.prototype.willRetrieve = function () {
         return this;
     };
+    Collection$$1.prototype.getModel = function () {
+        return this.model;
+    };
     Collection$$1.prototype.getCollection = function () {
-        var name, metadataManager = this.get('@metadata_manager');
-        name = metadataManager.getCollection(this.getClassName());
-        return this[name];
+        return this._collection;
     };
     Collection$$1.prototype.getBridge = function () {
         var bridge = this.bridge;
@@ -1872,10 +1855,6 @@ function identifier(proto, attrName) {
  * @param proto
  * @param attrName
  */
-function collection(proto, attrName) {
-    var metadataManager = Vessel$$1.$container.get('@metadata_manager'), className = proto.getClassName();
-    metadataManager.setCollection(className, attrName);
-}
 
 /**
  * Decorator: @validate( <validate function> )
@@ -2015,15 +1994,11 @@ var TodoCollection = (function (_super) {
     function TodoCollection() {
         var _this = _super !== null && _super.apply(this, arguments) || this;
         _this.bridge = 'service.todo';
-        _this.todos = [];
         _this.model = TodoModel;
         return _this;
     }
     return TodoCollection;
 }(Collection$$1));
-__decorate([
-    collection
-], TodoCollection.prototype, "todos", void 0);
 __decorate([
     get('collection.test')
 ], TodoCollection.prototype, "testCollection", void 0);

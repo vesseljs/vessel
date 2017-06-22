@@ -4,8 +4,6 @@ export class Metadata {
 
     public static MODEL_IDENTIFIER_KEY = 'identifier';
 
-    public static COLLECTION_ATTRIBUTE_KEY = 'collection';
-
     public static DEPENDENCIES_KEY = 'dependencies';
 
 }

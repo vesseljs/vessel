@@ -8,10 +8,7 @@ export class TodoCollection extends BaseCollection {
 
     protected bridge = 'service.todo';
 
-    @collection
-    public todos = [];
-
-    public model = TodoModel;
+    protected model = TodoModel;
 
     @get('collection.test')
     public testCollection;

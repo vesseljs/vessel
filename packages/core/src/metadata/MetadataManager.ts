@@ -65,15 +65,6 @@ export class MetadataManager {
         return this;
     }
 
-    public getCollection(className) {
-        return this.retrieve(className, Metadata.COLLECTION_ATTRIBUTE_KEY);
-    }
-
-    public setCollection(className, attrName) {
-        this.loadClass(className)[Metadata.COLLECTION_ATTRIBUTE_KEY] = attrName;
-        return this;
-    }
-
     public getIdentifier(className) {
         return this.retrieve(className, Metadata.MODEL_IDENTIFIER_KEY);
     }
