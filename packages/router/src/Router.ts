@@ -1,4 +1,4 @@
-import {Vessel, removeLastSlash, each } from '@vessel/core';
+import {Vessel, removeLastSlash, each, isEmpty } from '@vessel/core';
 import { Strategy } from './Strategy';
 import { Fragment} from './Fragment';
 import { Route } from './Route';
@@ -29,6 +29,11 @@ export class Router {
     private route(routeName, routeParamsObj=null) {
         let generatedPath,
             route = this.getRouteByName(routeName);
+
+        if ( isEmpty(route) ) {
+            throw new TypeError('Router: route '+ routeName +
+            ' does not exist.');
+        }
 
         each(routeParamsObj, function(param, value) {
             route.setParameter(param, value);

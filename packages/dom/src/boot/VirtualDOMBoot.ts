@@ -10,7 +10,7 @@ export class VirtualDOMBoot extends AbstractPackageBoot {
     }
 
     public setup(namespace, container) {
-        namespace.router = container.get('@vdom');
+        namespace.vdom = container.get('@vdom');
     }
 
 }

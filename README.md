@@ -2,7 +2,7 @@
   <img src="https://user-images.githubusercontent.com/22831717/27260150-cafd59e0-5424-11e7-9591-04b74040945d.png"/>
 </p>
 <p align="center">
-<img src="https://badge.fury.io/js/vesseljs.svg"/>
+<a href="https://www.npmjs.com/package/vesseljs"><img src="https://badge.fury.io/js/vesseljs.svg"/></a>
 <img src="https://img.shields.io/npm/l/express.svg"/>
 </p>
 
@@ -26,7 +26,7 @@ Packages installation via NPM <br>
 Download the ready-to-go boilerplate **(recommended)**<br>
 <sub>_(You won't need to configure anything)_</sub> 
 
-[Vessel (v1.0.1-pre) Boilerplate Download](https://github.com/vesseljs/vessel/releases/latest)
+[Vessel (latest) Boilerplate Download](https://github.com/vesseljs/vessel/releases/latest)
 
 Then, run in the boilerplate directory
 
@@ -446,7 +446,7 @@ export class TodoView extends View {
     }
 
     public onRefresh() {
-        this.renderRoute('todo_edit', {id: ++this.state.id});
+        this.route('todo_edit', {id: ++this.state.id});
     }
 
     public render() {

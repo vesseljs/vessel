@@ -42,6 +42,7 @@ gulp.task('browser', ['bundle', 'copy:html'], function()  {
     browserSync.init({
         server: {
             baseDir: './dist',
+            port: 3000
         },
         logPrefix: "VESSEL v" + pkg.version + ": BrowserSync"
 

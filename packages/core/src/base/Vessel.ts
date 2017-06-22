@@ -19,8 +19,6 @@ export class Vessel {
      */
     public static $container: Container = new ContainerLoader().boot();
 
-    public static can = Vessel.detectBrowserFeatures();
-
     public static detectBrowserFeatures() {
         return {
             WeakMap: isSupported( (<any>window).WeakMap ),
@@ -29,6 +27,9 @@ export class Vessel {
             onhashchange: "onhashchange" in window
         }
     }
+
+    public static can = Vessel.detectBrowserFeatures();
+
 
     /**
      * Container: Alias

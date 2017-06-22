@@ -1,6 +1,6 @@
 {
   "name": "vesseljs",
-  "version": "1.0.1-pre",
+  "version": "1.0.2-pre",
   "description": "Client side JS framework for building solid MVC apps",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

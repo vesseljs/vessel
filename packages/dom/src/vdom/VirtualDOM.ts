@@ -1,6 +1,9 @@
-import {Vessel, Types, isString, each, isEvent, formatEvent} from '@vessel/core';
+import {Vessel, BaseTypes, each, isEvent, formatEvent} from '@vessel/core';
 import { VirtualNode } from '../vnode/VirtualNode';
+import {VirtualTextNode} from "../vnode/VirtualTextNode";
 
+// TODO - Split up VirtualNode, VirtualElementNode, VirtualTextNode
+// and patch system.
 
 export class VirtualDOM {
 
@@ -23,15 +26,22 @@ export class VirtualDOM {
 
     public unrender(viewName: string) {
         let view,
+            $lastNode,
             container = Vessel.$container;
 
         view = container.get(viewName);
+        $lastNode = view.getLastNode();
 
-        this.removeChild(view.getParentElement(), view.getLastNode().index());
+        if (!$lastNode) {
+            return false;
+        }
+
+        this.removeChild(view.getParentElement(), $lastNode.index());
+        view.setLastNode(void 0);
         return Vessel.$container.remove(view);
     }
 
-
+    // This code will be deprecated on next version
     public updateNode(parent, $newNode, $oldNode=undefined, childIndex = 0) {
         if (!$newNode) {
             this.removeChild(parent, childIndex);
@@ -39,26 +49,31 @@ export class VirtualDOM {
             this.appendChild(parent, $newNode);
         } else if (this.hasChanged($newNode, $oldNode)) {
             this.replaceChild(parent, $newNode, childIndex);
-        } else if ($newNode.type) {
-            let nextParent = parent.childNodes[childIndex],
-                newChildrenLen = $newNode.children.length,
-                oldChildrenLen = $oldNode.children.length,
-                newAttr = $newNode.attributes,
-                oldAttr = $oldNode.attributes;
+        } else {
+            $newNode.setEl($oldNode.el());
+            if ($newNode.type) {
+                let nextParent = !parent
+                        ? void 0
+                        : parent.childNodes[childIndex],
+                    newChildrenLen = $newNode.children.length,
+                    oldChildrenLen = $oldNode.children.length,
+                    newAttr = $newNode.attributes,
+                    oldAttr = $oldNode.attributes;
 
-            for (let attrName in newAttr || oldAttr) {
-                this.updateAttribute(
-                    nextParent,
-                    attrName,
-                    newAttr[attrName],
-                    oldAttr[attrName]
-                );
-            }
+                for (let attrName in newAttr || oldAttr) {
+                    this.updateAttribute(
+                        nextParent,
+                        attrName,
+                        newAttr[attrName],
+                        oldAttr[attrName]
+                    );
+                }
 
-            for (let currentChild = 0; currentChild < newChildrenLen || currentChild < oldChildrenLen; currentChild++) {
-                let $new = $newNode.children[currentChild],
-                    $old = $oldNode.children[currentChild];
-                this.updateNode(nextParent, $new, $old, currentChild);
+                for (let currentChild = 0; currentChild < newChildrenLen || currentChild < oldChildrenLen; currentChild++) {
+                    let $new = $newNode.children[currentChild],
+                        $old = $oldNode.children[currentChild];
+                    this.updateNode(nextParent, $new, $old, currentChild);
+                }
             }
         }
         return $newNode;
@@ -72,16 +87,21 @@ export class VirtualDOM {
         }
     }
 
+
     private createRealElement($node: any ): any {
 
-        if (isString($node)) {
-            return document.createTextNode($node);
+        let elem;
+
+        if (this.isVirtualTextNode($node)) {
+            elem = document.createTextNode($node.getContent());
+            $node.setEl(elem);
+            return elem;
         }
 
         let $child,
-            elem = document.createElement($node.type),
             children = $node.children;
 
+        elem = document.createElement($node.type);
         this.setAttributes(elem, $node.attributes);
 
         if (children) {
@@ -97,9 +117,15 @@ export class VirtualDOM {
 
     }
 
+    private isVirtualTextNode($node) {
+        return $node.getType() === BaseTypes.VirtualTextNode;
+    }
+
+    // hasChanged is a subject to change when the new
+    // patch system arrives.
     private hasChanged($node1, $node2): boolean {
         return typeof $node1 !== typeof $node2 ||
-            typeof $node1 === Types.STRING && $node1 !== $node2 ||
+            this.isVirtualTextNode($node1) && this.isVirtualTextNode($node2) && $node1.getContent() !== $node2.getContent() ||
             $node1.type != $node2.type;
     }
 

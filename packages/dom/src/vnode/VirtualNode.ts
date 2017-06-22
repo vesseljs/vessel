@@ -1,6 +1,12 @@
-import {toString, merge, each, Vessel} from '@vessel/core';
+import {toString, merge, each, Vessel, BaseTypes} from '@vessel/core';
+import {VirtualTextNode} from "./VirtualTextNode";
+
+// TODO - Split up VirtualNode, VirtualElementNode, VirtualTextNode
+// and patch system.
 
 export class VirtualNode {
+
+    private _type = BaseTypes.VirtualElementNode;
 
     public type;
 
@@ -9,6 +15,10 @@ export class VirtualNode {
     public attributes = {};
 
     private element = null;
+
+    public getType() {
+        return this._type;
+    }
 
     public constructor(type) {
         this.type = type;
@@ -38,8 +48,9 @@ export class VirtualNode {
     }
 
     public text(str: string) {
-        let children = this.children;
-        if (children.length === 0) children.push(toString(str));
+        let $textNode = new VirtualTextNode(toString(str)),
+            children = this.children;
+        if (children.length === 0) children.push($textNode);
         return this;
     }
 

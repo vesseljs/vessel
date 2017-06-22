@@ -16,7 +16,27 @@
             "dom",
             "es2015.promise",
             "es2015.generator"
-        ]
+        ],
+        "paths": {
+            "@vessel/core": [
+                "./node_modules/vesseljs/core/"
+            ],
+            "@vessel/decorators": [
+                "./node_modules/vesseljs/decorators/"
+            ],
+            "@vessel/dom": [
+                "./node_modules/vesseljs/dom/"
+            ],
+            "@vessel/router": [
+                "./node_modules/vesseljs/router"
+            ],
+            "@vessel/vessel-cli": [
+                "./node_modules/vesseljs/vessel-cli"
+            ],
+            "@vessel/types/*": [
+                "./node_modules/vesseljs/types"
+            ]
+        }
     }
 }
 

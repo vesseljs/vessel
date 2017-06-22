@@ -20,4 +20,8 @@ export class BaseTypes {
 
     public static STORAGE_BRIDGE = 'storage_bridge';
 
+    public static VirtualTextNode = 'vtext_node';
+
+    public static VirtualElementNode = 'velement_node';
+
 }

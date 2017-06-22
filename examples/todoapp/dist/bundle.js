@@ -519,6 +519,8 @@ BaseTypes.REMOTE_SERVICE = 'remote_service';
 BaseTypes.BRIDGE = 'bridge';
 BaseTypes.HTTP_BRIDGE = 'http_bridge';
 BaseTypes.STORAGE_BRIDGE = 'storage_bridge';
+BaseTypes.VirtualTextNode = 'vtext_node';
+BaseTypes.VirtualElementNode = 'velement_node';
 
 var Types = (function () {
     function Types() {
@@ -1018,13 +1020,53 @@ var Controller$$1 = (function (_super) {
     return Controller$$1;
 }(Vessel$$1));
 
+var VirtualTextNode = (function () {
+    function VirtualTextNode(content) {
+        this._type = BaseTypes.VirtualTextNode;
+        this.element = null;
+        this.content = content;
+    }
+    VirtualTextNode.prototype.getType = function () {
+        return this._type;
+    };
+    VirtualTextNode.prototype.setContent = function (content) {
+        this.content = content;
+        return this;
+    };
+    VirtualTextNode.prototype.getContent = function () {
+        return this.content;
+    };
+    VirtualTextNode.prototype.setEl = function (elem) {
+        this.element = elem;
+        return this;
+    };
+    VirtualTextNode.prototype.el = function () {
+        return this.element;
+    };
+    VirtualTextNode.prototype.index = function () {
+        // Internet explorer 6,7,8 will include
+        // comment nodes.
+        // https://developer.mozilla.org/en-US/docs/Web/API/ParentNode/children#Browser_compatibility
+        //
+        var el = this.el();
+        return Array.prototype.indexOf.call(el.parentElement.children, el);
+    };
+    return VirtualTextNode;
+}());
+
+// TODO - Split up VirtualNode, VirtualElementNode, VirtualTextNode
+// and patch system.
 var VirtualNode = (function () {
     function VirtualNode(type) {
+        this._type = BaseTypes.VirtualElementNode;
         this.children = [];
         this.attributes = {};
         this.element = null;
         this.type = type;
     }
+    VirtualNode.prototype.getType = function () {
+        return this._type;
+    };
     VirtualNode.prototype.setEl = function (elem) {
         this.element = elem;
         return this;
@@ -1045,9 +1087,9 @@ var VirtualNode = (function () {
         return this;
     };
     VirtualNode.prototype.text = function (str) {
-        var children = this.children;
+        var $textNode = new VirtualTextNode(toString$$1(str)), children = this.children;
         if (children.length === 0)
-            children.push(toString$$1(str));
+            children.push($textNode);
         return this;
     };
     VirtualNode.prototype.appendTo = function ($parent) {
@@ -1166,6 +1208,8 @@ var VirtualNode = (function () {
     return VirtualNode;
 }());
 
+// TODO - Split up VirtualNode, VirtualElementNode, VirtualTextNode
+// and patch system.
 var VirtualDOM = (function () {
     function VirtualDOM() {
     }
@@ -1181,9 +1225,14 @@ var VirtualDOM = (function () {
         return view.setLastNode(this.updateNode(parent, $new, $old));
     };
     VirtualDOM.prototype.unrender = function (viewName) {
-        var view, container = Vessel$$1.$container;
+        var view, $lastNode, container = Vessel$$1.$container;
         view = container.get(viewName);
-        this.removeChild(view.getParentElement(), view.getLastNode().index());
+        $lastNode = view.getLastNode();
+        if (!$lastNode) {
+            return false;
+        }
+        this.removeChild(view.getParentElement(), $lastNode.index());
+        view.setLastNode(void 0);
         return Vessel$$1.$container.remove(view);
     };
     VirtualDOM.prototype.updateNode = function (parent, $newNode, $oldNode, childIndex) {
@@ -1198,14 +1247,19 @@ var VirtualDOM = (function () {
         else if (this.hasChanged($newNode, $oldNode)) {
             this.replaceChild(parent, $newNode, childIndex);
         }
-        else if ($newNode.type) {
-            var nextParent = parent.childNodes[childIndex], newChildrenLen = $newNode.children.length, oldChildrenLen = $oldNode.children.length, newAttr = $newNode.attributes, oldAttr = $oldNode.attributes;
-            for (var attrName in newAttr || oldAttr) {
-                this.updateAttribute(nextParent, attrName, newAttr[attrName], oldAttr[attrName]);
-            }
-            for (var currentChild = 0; currentChild < newChildrenLen || currentChild < oldChildrenLen; currentChild++) {
-                var $new = $newNode.children[currentChild], $old = $oldNode.children[currentChild];
-                this.updateNode(nextParent, $new, $old, currentChild);
+        else {
+            $newNode.setEl($oldNode.el());
+            if ($newNode.type) {
+                var nextParent = !parent
+                    ? void 0
+                    : parent.childNodes[childIndex], newChildrenLen = $newNode.children.length, oldChildrenLen = $oldNode.children.length, newAttr = $newNode.attributes, oldAttr = $oldNode.attributes;
+                for (var attrName in newAttr || oldAttr) {
+                    this.updateAttribute(nextParent, attrName, newAttr[attrName], oldAttr[attrName]);
+                }
+                for (var currentChild = 0; currentChild < newChildrenLen || currentChild < oldChildrenLen; currentChild++) {
+                    var $new = $newNode.children[currentChild], $old = $oldNode.children[currentChild];
+                    this.updateNode(nextParent, $new, $old, currentChild);
+                }
             }
         }
         return $newNode;
@@ -1219,10 +1273,14 @@ var VirtualDOM = (function () {
         }
     };
     VirtualDOM.prototype.createRealElement = function ($node) {
-        if (isString$$1($node)) {
-            return document.createTextNode($node);
+        var elem;
+        if (this.isVirtualTextNode($node)) {
+            elem = document.createTextNode($node.getContent());
+            $node.setEl(elem);
+            return elem;
         }
-        var $child, elem = document.createElement($node.type), children = $node.children;
+        var $child, children = $node.children;
+        elem = document.createElement($node.type);
         this.setAttributes(elem, $node.attributes);
         if (children) {
             for (var i = 0, len = children.length; i < len; i++) {
@@ -1233,9 +1291,14 @@ var VirtualDOM = (function () {
         $node.setEl(elem);
         return elem;
     };
+    VirtualDOM.prototype.isVirtualTextNode = function ($node) {
+        return $node.getType() === BaseTypes.VirtualTextNode;
+    };
+    // hasChanged is a subject to change when the new
+    // patch system arrives.
     VirtualDOM.prototype.hasChanged = function ($node1, $node2) {
         return typeof $node1 !== typeof $node2 ||
-            typeof $node1 === Types.STRING && $node1 !== $node2 ||
+            this.isVirtualTextNode($node1) && this.isVirtualTextNode($node2) && $node1.getContent() !== $node2.getContent() ||
             $node1.type != $node2.type;
     };
     VirtualDOM.prototype.setAttribute = function (elem, name, value) {
@@ -1280,7 +1343,7 @@ var VirtualDOMBoot = (function (_super) {
         container.registerSingleModule('@vdom', VirtualDOM);
     };
     VirtualDOMBoot.prototype.setup = function (namespace, container) {
-        namespace.router = container.get('@vdom');
+        namespace.vdom = container.get('@vdom');
     };
     return VirtualDOMBoot;
 }(AbstractPackageBoot));
@@ -1326,6 +1389,7 @@ var View$$1 = (function (_super) {
     return View$$1;
 }(Vessel$$1));
 
+// import { ModelInterface } from '@vessel/types/definitions';
 var Collection$$1 = (function (_super) {
     __extends(Collection$$1, _super);
     function Collection$$1() {
@@ -1432,9 +1496,7 @@ function isFunction$$1(fn) {
         return false;
     return true;
 }
-function isString$$1(exp) {
-    return typeof exp === Types.STRING;
-}
+
 function isObject$$1(exp) {
     return typeof exp === Types.OBJECT;
 }
@@ -1646,6 +1708,10 @@ var Router = (function () {
     Router.prototype.route = function (routeName, routeParamsObj) {
         if (routeParamsObj === void 0) { routeParamsObj = null; }
         var generatedPath, route = this.getRouteByName(routeName);
+        if (isEmpty$$1(route)) {
+            throw new TypeError('Router: route ' + routeName +
+                ' does not exist.');
+        }
         each$$1(routeParamsObj, function (param, value) {
             route.setParameter(param, value);
         });
@@ -1702,7 +1768,9 @@ var RouterBoot = (function (_super) {
         container.registerSingleModule('@router', Router);
     };
     RouterBoot.prototype.setup = function (namespace, container) {
-        namespace.router = container.get('@router').boot();
+        var router = container.get('@router');
+        namespace.router = router;
+        router.boot();
     };
     return RouterBoot;
 }(AbstractPackageBoot));
