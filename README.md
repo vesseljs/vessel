@@ -17,18 +17,29 @@ Vessel is javascript _(Typescript)_ client side framework. Which structures your
 
 ## Download and Installation
 
-Packages installation via NPM
+Packages installation via NPM <br>
+<sub>_(you'll need to configure TypeScript, Dev and Compiling tools by your own)_</sub>
 
 `npm install vesseljs`
 
 
-Download the ready-to-go boilerplate (recommended)<br><sub>_(vessel-cli is coming!)_</sub> 
+Download the ready-to-go boilerplate **(recommended)**<br>
+<sub>_(You won't need to configure anything)_</sub> 
 
-[Vessel (v1.0.0-pre) Boilerplate Download](#)
+[Vessel (v1.0.1-pre) Boilerplate Download](https://github.com/vesseljs/vessel/releases/latest)
 
 Then, run in the boilerplate directory
 
 `npm install`
+
+That's it. 
+
+### Usage
+
+Now you can import the vessel classes. Type ```npm run serve``` or ```gulp serve``` —if
+           you have gulp globally installed— to start up a developing server and watch files for changes.
+
+_Note: vessel-cli is coming!_
 
 
 ## Quick Overview

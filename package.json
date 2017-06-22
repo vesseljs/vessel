@@ -1,6 +1,6 @@
 {
   "name": "vessel-source",
-  "version": "1.0.0",
+  "version": "1.0.1-pre",
   "description": "Complete source of Vessel Framework",
   "main": "./examples/todoapp/dist/bundle.js",
   "directories": {
