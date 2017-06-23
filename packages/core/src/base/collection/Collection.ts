@@ -1,4 +1,15 @@
-import { Vessel, Model, filterOne, filter, matchPair, map, BaseTypes } from '@vessel/core';
+import {
+    Vessel,
+    Model,
+    filterOne,
+    filter,
+    matchPair,
+    map,
+    BaseTypes,
+    isEmpty,
+    puck,
+    findBy
+} from '@vessel/core';
 // import { ModelInterface } from '@vessel/types/definitions';
 
 
@@ -14,6 +25,9 @@ export abstract class Collection extends Vessel {
      * Stores the bridge service.
      */
     protected bridge: string;
+
+    // TODO - Add addSource so models can be added
+    // from objects.
 
     public add(model) {
         let collection = this.getCollection();
@@ -51,6 +65,18 @@ export abstract class Collection extends Vessel {
         });
     }
 
+    public getLastId(attrib: string = 'id') {
+        let id,
+            attrName,
+            singleModel,
+            collection = this.getCollection();
+        if ( isEmpty(collection) ) {
+            return 0;
+        }
+        return Math.max(...puck(collection, attrib));
+    }
+
+
     public sort() {
 
     }
@@ -69,6 +95,12 @@ export abstract class Collection extends Vessel {
 
     protected getCollection() {
         return this._collection;
+    }
+
+    public setCollection(collection: Array<any>) {
+        this._collection = collection;
+
+        return this;
     }
 
     protected getBridge() {

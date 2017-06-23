@@ -13,6 +13,18 @@ export class Request {
 
     private parameters = '';
 
+    private injectResults: boolean = false;
+
+    public getInjectResults() {
+        return this.injectResults;
+    }
+
+    public setInjectResults(value) {
+        this.injectResults = value;
+
+        return this;
+    }
+
     get fullUrl() {
         return this.url + this.parameters;
     }

@@ -142,7 +142,7 @@ export function formatEvent(eventName) {
 }
 
 export function removeLastSlash(url) {
-    return url.replace(RegExpressions.LAST_URL_SLASH, url);
+    return url.replace(RegExpressions.LAST_URL_SLASH, '');
 }
 
 export function toInitialUpperCase(string) {
@@ -152,6 +152,10 @@ export function toInitialUpperCase(string) {
 export function toRegExpPath(pathStr: string) {
     return new RegExp('^'+pathStr.replace(RegExpressions.ROUTE_PATH_PARAMETER,
                     "([^\/]+)")+'$');
+}
+
+export function isSet(opts, prop): boolean {
+    return !isEmpty(opts) && opts.hasOwnProperty('prop');
 }
 
 export function defineProp(obj, prop, getter, setter) {
@@ -171,3 +175,22 @@ export function getKeys(obj) {
 export function getCurrentUrl() {
     return window.location.href;
 }
+
+export function findBy(obj, attrs) {
+    return filterOne(obj, function(item){
+        return matchPair(item, attrs);
+    });
+}
+
+export function findAllBy(obj, attrs) {
+    return filter(obj, function(item){
+        return matchPair(item, attrs);
+    });
+}
+
+export function puck(obj, attrName) {
+    return map(obj, function(item){
+        return item[attrName];
+    });
+}
+

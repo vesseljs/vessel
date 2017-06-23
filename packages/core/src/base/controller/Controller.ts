@@ -4,8 +4,15 @@ export class Controller extends Vessel {
 
     protected _type = BaseTypes.CONTROLLER;
 
-    protected render(viewName, renderData) {
-      return this.get('@vdom').render(viewName, renderData);
+    protected render(viewName, renderData=undefined) {
+        let self = this;
+        if (document.readyState === "complete") {
+            self.get('@vdom').render(viewName, renderData);
+        } else {
+            window.onload = function() {
+                self.get('@vdom').render(viewName, renderData);
+            }
+        }
     }
 
     protected unrender(viewName) {

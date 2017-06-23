@@ -9,7 +9,25 @@ export abstract class View extends Vessel {
 
     protected state: any = {};
 
+    public static: boolean = false;
+
+    protected _rendered: boolean = false;
+
     private $lastNode: VirtualNode;
+
+    public isStatic() {
+        return this.static;
+    }
+
+    public isRendered() {
+        return this._rendered
+    }
+
+    public setRendered(value: boolean) {
+        this._rendered = value;
+
+        return this;
+    }
 
     protected setState(state) {
         merge(this.state, state);

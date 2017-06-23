@@ -58,10 +58,13 @@ export class Model extends Vessel implements ModelInterface {
     }
 
     public getIdentifier() {
-        let attrName = this
-            .get('@metadata_manager')
-            .getIdentifier(this.getClassName());
+        let attrName = this.getIdentifierAttribute();
         return this[Model.MODEL_PROXY_PROPERTY_NAME][attrName];
+    }
+
+    public getIdentifierAttribute() {
+        return this.get('@metadata_manager')
+                   .getIdentifier(this.getClassName());
     }
 
     public getAttrs() {

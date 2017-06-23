@@ -1,5 +1,5 @@
 import { Bridge } from '../Bridge';
-import { merge, isModel, isCollection, BaseTypes, Types } from '@vessel/core';
+import { merge, isModel, isCollection, BaseTypes, Types, isEmpty , isArray } from '@vessel/core';
 import { Request } from './Request';
 
 export abstract class HttpBridge extends Bridge {
@@ -50,14 +50,6 @@ export abstract class HttpBridge extends Bridge {
         return this.getRemoteUrl() + this.endPoint;
     }
 
-    protected getObjUrl(obj) {
-        if ( isModel(obj) ) {
-            return this.getPartialUrl() + '/' + this.extractIdentifier(obj);
-        } else if ( isCollection(obj) ) {
-            return this.getPartialUrl();
-        }
-    }
-
     // isModel Alias
     protected isModel(obj) {
         return isModel(obj);
@@ -91,22 +83,38 @@ export abstract class HttpBridge extends Bridge {
 
     private isValidIdentifier(exp) {
         return typeof exp === Types.STRING && exp !== "" ||
-               typeof exp ===  Types.NUMBER;
+            typeof exp ===  Types.NUMBER;
+    }
+
+
+    private modifyRequest(requestOpts, obj) {
+        let $requestOpts: any = {};
+
+        if ( isModel(obj) ) {
+            $requestOpts.url = this.getPartialUrl() + '/' + this.extractIdentifier(obj);
+        } else if ( isCollection(obj) ) {
+            $requestOpts.url = this.getPartialUrl();
+            $requestOpts.injectResults = true;
+        }
+
+        if ( isEmpty($requestOpts)) {
+            return requestOpts;
+        }
+
+        return merge($requestOpts, requestOpts);
     }
 
     private bridgeRequest(obj, requestCb, processCb, requestOptions) {
         let self = this,
             request,
+            requestDefaults,
             processedData,
             requestPromise,
             data;
 
         request = new Request();
-        request.setDefaults(requestOptions);
-
-        if ( !requestOptions.hasOwnProperty('url') ) {
-            request.setUrl(this.getObjUrl(obj));
-        }
+        requestDefaults = this.modifyRequest(requestOptions, obj);
+        request.setDefaults(requestDefaults);
 
         return new Promise((resolve, reject) => {
 
@@ -116,6 +124,11 @@ export abstract class HttpBridge extends Bridge {
                 function onSuccess(response) {
                     data = self.getResponse(response);
                     processedData = processCb.call(self, data, obj);
+                    if (requestDefaults.injectResults
+                        && processCb === self.read
+                        && isArray(processedData)) {
+                        obj.setCollection(processedData);
+                    }
                     resolve(processedData);
                 },
 

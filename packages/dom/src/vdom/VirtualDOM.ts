@@ -1,4 +1,4 @@
-import {Vessel, BaseTypes, each, isEvent, formatEvent} from '@vessel/core';
+import {Vessel, BaseTypes, isEmpty, each, isEvent, formatEvent} from '@vessel/core';
 import { VirtualNode } from '../vnode/VirtualNode';
 import {VirtualTextNode} from "../vnode/VirtualTextNode";
 
@@ -11,15 +11,21 @@ export class VirtualDOM {
         return new VirtualNode(type);
     }
 
-    public render(viewName: string, renderData: any) {
+    public render(viewName: string, renderData: any=undefined) {
         let $new, $old, parent,
             view = Vessel.$container.get(viewName);
+
+        if (view.isStatic() && view.isRendered()) {
+            return false;
+        }
 
         view.setState(renderData);
 
         $new = view.render();
         $old = view.getLastNode();
         parent = view.getParentElement();
+
+        view.setRendered(true);
 
         return view.setLastNode( this.updateNode(parent, $new, $old) );
     }
@@ -38,6 +44,7 @@ export class VirtualDOM {
 
         this.removeChild(view.getParentElement(), $lastNode.index());
         view.setLastNode(void 0);
+        view.setRendered(false);
         return Vessel.$container.remove(view);
     }
 
