@@ -10,7 +10,7 @@
 
 ### Deprecated
 
-This project is no longer in active development since it was just a final course project. It will remain archived here so everyone can see the code. Keep in mind these packages are really simple and incomplete, but it is strongly recommended for newbies who want to learn the basics of a virtual dom, a dependency injector or a simple router.
+This project is no longer in active development as it was just a final course project. It will remain archived here so everyone can see the code. Keep in mind these packages are really simple and incomplete, but it is strongly recommended for newbies who want to learn the basics of a virtual dom, a dependency injector or a simple router.
 
 <sub>_Vessel.js is a work in progress!_</sub>
 
